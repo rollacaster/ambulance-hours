@@ -1,0 +1,13 @@
+{:source-paths
+ ["src"]
+
+ :dependencies
+ [[reagent "0.10.0"]]
+
+ :builds
+ {:app
+  {:target :react-native
+   :init-fn ambulance-hours.core/init
+   :output-dir "app"
+   :devtools {:autoload true
+              :preloads [shadow.expo.keep-awake]}}}}

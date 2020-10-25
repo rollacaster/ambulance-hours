@@ -3,6 +3,7 @@
     "name": "Ambulante Stunden",
     "slug": "ambulance-hours",
     "privacy": "public",
+    "entryPoint": "./app/index.js",
     "platforms": [
       "ios",
       "android",
