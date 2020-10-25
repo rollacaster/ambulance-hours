@@ -1,39 +1,51 @@
 (ns ambulance-hours.core
   (:require
-    ["react-native" :as rn]
-    [reagent.core :as r]
-    [shadow.expo :as expo]
-    ["tailwind-rn" :as tw]))
+   ["react-native" :as rn]
+   [reagent.core :as r]
+   [shadow.expo :as expo]
+   ["tailwind-rn" :as tw]
+   [cljs.reader :refer [read-string]]
+   ["@expo/vector-icons" :as icons]))
 
-(defonce counter (r/atom 0))
+(defonce data (r/atom {"K3003" [{:date (new js/Date) :hours 2}
+                                {:date (new js/Date) :hours 2}
+                                {:date (new js/Date) :hours 2}]
+                       "S1609" [{:date (new js/Date) :hours 2}
+                                {:date (new js/Date) :hours 2}
+                                {:date (new js/Date) :hours 2}]}))
+
+(defn total-hours [data]
+  (->> data
+       vals
+       flatten
+       (map :hours)
+       (reduce +)))
 
 (defn root []
-  (-> (.getItem rn/AsyncStorage "counter")
-      (.then (fn [counter] (if counter (js/parseInt counter) 154)))
-      (.then #(reset! counter %)))
+  (-> (.getItem rn/AsyncStorage "data")
+      (.then read-string)
+      (.then #(reset! data %)))
   (fn []
     [:> rn/SafeAreaView
-     {:style (tw "flex-1 justify-between items-center")}
+     {:style (tw "flex-1 items-center bg-orange-400")}
      [:> rn/View
-      [:> rn/View
-       {:style (tw "my-6 px-2")}
-       [:> rn/Text {:style (tw "text-3xl text-center")} "💖"]
+      {:style (tw "bg-orange-400 w-full p-3")}
+      [:> rn/View {:style (tw "flex-row items-center")}
+       [:> icons/EvilIcons {:name "clock" :size 48 :color "white"
+                            :style (tw "mr-1")}]
        [:> rn/Text
-        {:style (tw "text-3xl text-center")}
-        "Prinzessin's Ambulante Stunden Counter"]
-       [:> rn/Text {:style (tw "text-3xl text-center")} "💖"]]
+        {:style (tw "text-3xl text-white")}
+        "Ambulante Stunden"]]]
+     [:> rn/View
+      {:style (tw "flex-1 pt-6 bg-white w-full")}
       [:> rn/View
        {:style (tw "items-center")}
-       [:> rn/TouchableHighlight
-        {:style (tw "bg-orange-500 justify-center w-10 h-10 items-center rounded mb-4")
-         :on-press #(.setItem rn/AsyncStorage "counter" (str (swap! counter inc)))}
-        [:> rn/Text {:style (tw "text-3xl text-white")} "+"]]
-       [:> rn/Text {:style (tw "text-3xl mb-4")} @counter]
-       [:> rn/TouchableHighlight
-        {:style (tw "bg-orange-500 justify-center w-10 h-10 items-center rounded mb-4")
-         :on-press #(.setItem rn/AsyncStorage "counter" (str (swap! counter dec)))}
-        [:> rn/Text {:style (tw "text-3xl text-white")} "-"]]]]
-     [:> rn/View [:> rn/Text "made with 💖"]]]))
+       [:> rn/Text {:style (tw "text-6xl font-extrabold tracking-wide  mb-4")} (total-hours @data)]]]
+     [:> rn/View
+      {:style (tw "bg-orange-400 w-full items-center pt-2")}
+      [:> rn/Text
+       {:style (tw "text-white")}
+       "made with 💖"]]]))
 
 (defn start
   {:dev/after-load true}
