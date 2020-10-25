@@ -3,7 +3,6 @@
     "name": "Ambulante Stunden",
     "slug": "ambulance-hours",
     "privacy": "public",
-    "sdkVersion": "35.0.0",
     "platforms": [
       "ios",
       "android",

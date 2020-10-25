@@ -8,16 +8,17 @@
     "eject": "expo eject"
   },
   "dependencies": {
-    "@react-native-community/async-storage": "^1.6.2",
-    "expo": "^35.0.0",
-    "react": "16.8.3",
-    "react-dom": "16.8.3",
-    "react-native": "https://github.com/expo/react-native/archive/sdk-35.0.0.tar.gz",
+    "@react-native-community/async-storage": "~1.12.0",
+    "expo": "^39.0.0",
+    "react": "16.13.1",
+    "react-dom": "16.13.1",
+    "react-native": "https://github.com/expo/react-native/archive/sdk-39.0.3.tar.gz",
     "react-native-style-tachyons": "^4.0.0",
-    "react-native-web": "^0.11.7"
+    "react-native-web": "~0.13.7",
+    "tailwind-rn": "^2.0.1"
   },
   "devDependencies": {
-    "babel-preset-expo": "^7.1.0"
+    "babel-preset-expo": "^8.3.0"
   },
   "private": true
 }
