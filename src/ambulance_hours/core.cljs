@@ -9,11 +9,11 @@
 
 (defonce data (r/atom (list
                        {:chiffre "K300391" :hours [{:date (new js/Date) :hours 2}
-                                                  {:date (new js/Date) :hours 2}
-                                                  {:date (new js/Date) :hours 2}]}
+                                                   {:date (new js/Date) :hours 2}
+                                                   {:date (new js/Date) :hours 2}]}
                        {:chiffre "S160990" :hours [{:date (new js/Date) :hours 2}
-                                                  {:date (new js/Date) :hours 2}
-                                                  {:date (new js/Date) :hours 2}]}
+                                                   {:date (new js/Date) :hours 2}
+                                                   {:date (new js/Date) :hours 2}]}
                        {:chiffre "A280388" :hours [{:date (new js/Date) :hours 2}
                                                    {:date (new js/Date) :hours 2}
                                                    {:date (new js/Date) :hours 2}]})))
@@ -56,76 +56,93 @@
     [button {:on-press #(prn "hi")}
      [:> rn/Text {:style (tw "text-3xl text-white")} "+"]]]])
 
+(defn new-patient [{:keys [chiffre update-chiffre create-new-patient]}]
+  [:> rn/View
+   {:style (tw "flex-row p-6  justify-between items-center bg-gray-700")}
+   [:> rn/TextInput
+    {:style (tw "bg-white w-1/2 text-2xl rounded p-2 border-2")
+     :auto-focus true
+     :on-blur #(when (= chiffre "") (update-chiffre nil))
+     :placeholder "Chiffre"
+     :value chiffre :on-change-text update-chiffre}]
+   [:> rn/TouchableHighlight
+    {:on-press (fn []) :style (merge
+                              {:shadowColor "#000",
+                               :shadowOffset {:width 0, :height 2},
+                               :shadowOpacity 0.25,
+                               :shadowRadius 3.84,
+                               :elevation 5}
+                              (js->clj (tw "bg-orange-500 justify-center items-center rounded p-2")))}
+    [:> rn/Text
+     {:style (tw "text-2xl text-white") :on-press #(create-new-patient chiffre)}
+     "Hinzufügen"]]])
+
+(defn add-patient-button [{:keys [add]}]
+  [:> rn/TouchableHighlight
+   {:style (merge {:bottom 0
+                   :right 0
+                   :shadowColor "#000",
+                   :shadowOffset {:width 0, :height 2},
+                   :shadowOpacity 0.25,
+                   :shadowRadius 3.84,
+                   :elevation 5}
+                  (js->clj (tw "absolute p-6")))
+    :on-press add}
+   [:> rn/View
+    {:style (tw "bg-orange-400 rounded-full w-16 h-16 items-center justify-center")}
+    [:> rn/Text
+     {:style (tw "text-white text-5xl font-bold")}
+     "+"]]])
+
+(defn header []
+  [:> rn/View
+   {:style (tw "bg-orange-400 w-full p-3")}
+   [:> rn/View {:style (tw "flex-row items-center")}
+    [:> icons/EvilIcons {:name "clock" :size 48 :color "white"
+                         :style (tw "mr-1")}]
+    [:> rn/Text
+     {:style (tw "text-3xl text-white")}
+     "Ambulante Stunden"]]])
+
+(defn total [{:keys [data]}]
+  [:> rn/View
+   {:style (tw "items-center")}
+   [:> rn/View
+    {:style (tw "mb-4 bg-orange-200 px-5 rounded-lg")}
+    [:> rn/Text {:style (tw "text-gray-900 text-6xl font-extrabold tracking-wide")} (total-hours data)]]])
+
+(defn footer []
+  [:> rn/View
+   {:style (tw "bg-orange-400 w-full items-center py-2")}
+   [:> rn/Text
+    {:style (tw "text-white")}
+    "made with 💖"]])
+
 (defn root []
   (-> (.getItem rn/AsyncStorage "data")
       (.then (fn [loaded-data] (if loaded-data (read-string loaded-data) @data)))
       (.then #(reset! data %)))
-
   (let [new-chiffre (r/atom nil)]
     (fn []
       [:> rn/SafeAreaView
        {:style (tw "flex-1 items-center bg-orange-400")}
-       [:> rn/View
-        {:style (tw "bg-orange-400 w-full p-3")}
-        [:> rn/View {:style (tw "flex-row items-center")}
-         [:> icons/EvilIcons {:name "clock" :size 48 :color "white"
-                              :style (tw "mr-1")}]
-         [:> rn/Text
-          {:style (tw "text-3xl text-white")}
-          "Ambulante Stunden"]]]
+       [header]
        [:> rn/View
         {:style (tw "flex-1 pt-6 bg-white w-full")}
-        [:> rn/View
-         {:style (tw "items-center")}
-         [:> rn/View
-          {:style (tw "mb-4 bg-orange-200 px-5 rounded-lg")}
-          [:> rn/Text {:style (tw "text-gray-900 text-6xl font-extrabold tracking-wide")} (total-hours @data)]]]
+        [total {:data @data}]
         [:> rn/ScrollView
          (when @new-chiffre
-             [:> rn/View
-              {:style (tw "flex-row p-6  justify-between items-center bg-gray-700")}
-              [:> rn/TextInput
-               {:style (tw "bg-white w-1/2 text-2xl rounded p-2 border-2")
-                :auto-focus true
-                :placeholder "Chiffre"
-                :value @new-chiffre :on-change-text (fn [text] (reset! new-chiffre text))}]
-              [:> rn/TouchableHighlight
-               {:on-press (fn []) :style (merge
-                                         {:shadowColor "#000",
-                                          :shadowOffset {:width 0, :height 2},
-                                          :shadowOpacity 0.25,
-                                          :shadowRadius 3.84,
-                                          :elevation 5}
-                                         (js->clj (tw "bg-orange-500 justify-center items-center rounded p-2")))}
-               [:> rn/Text
-                {:style (tw "text-2xl text-white") :on-press (fn []
-                                                               (swap! data conj {:chiffre @new-chiffre :hours []})
-                                                               (reset! new-chiffre nil))}
-                "Hinzufügen"]]])
+           [new-patient {:chiffre @new-chiffre
+                         :update-chiffre #(reset! new-chiffre %)
+                         :create-new-patient (fn [chiffre]
+                                               (swap! data conj {:chiffre chiffre :hours []})
+                                               (reset! new-chiffre nil))}])
          (map-indexed
-            (fn [idx {:keys [chiffre hours]}]
-              [patient {:key idx :idx idx :chiffre chiffre :hours hours}])
-            @data)]
-        [:> rn/TouchableHighlight
-         {:style (merge {:bottom 0
-                         :right 0
-                         :shadowColor "#000",
-                         :shadowOffset {:width 0, :height 2},
-                         :shadowOpacity 0.25,
-                         :shadowRadius 3.84,
-                         :elevation 5}
-                        (js->clj (tw "absolute p-6")))
-          :on-press #(reset! new-chiffre "")}
-         [:> rn/View
-          {:style (tw "bg-orange-400 rounded-full w-16 h-16 items-center justify-center")}
-          [:> rn/Text
-           {:style (tw "text-white text-5xl font-bold")}
-           "+"]]]]
-       [:> rn/View
-        {:style (tw "bg-orange-400 w-full items-center py-2")}
-        [:> rn/Text
-         {:style (tw "text-white")}
-         "made with 💖"]]])))
+          (fn [idx {:keys [chiffre hours]}]
+            [patient {:key idx :idx idx :chiffre chiffre :hours hours}])
+          @data)]
+        [add-patient-button {:add #(reset! new-chiffre "")}]]
+       [footer]])))
 
 (defn start
   {:dev/after-load true}
