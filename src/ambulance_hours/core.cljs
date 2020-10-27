@@ -7,16 +7,7 @@
    [cljs.reader :refer [read-string]]
    ["@expo/vector-icons" :as icons]))
 
-(defonce data (r/atom (list
-                       {:chiffre "K300391" :hours [{:date (new js/Date) :hours 2}
-                                                   {:date (new js/Date) :hours 2}
-                                                   {:date (new js/Date) :hours 2}]}
-                       {:chiffre "S160990" :hours [{:date (new js/Date) :hours 2}
-                                                   {:date (new js/Date) :hours 2}
-                                                   {:date (new js/Date) :hours 2}]}
-                       {:chiffre "A280388" :hours [{:date (new js/Date) :hours 2}
-                                                   {:date (new js/Date) :hours 2}
-                                                   {:date (new js/Date) :hours 2}]})))
+(defonce data (r/atom ()))
 
 (defn button [{:keys [on-press]} children]
   [:> rn/TouchableHighlight
@@ -30,6 +21,12 @@
        flatten
        (map :hours)
        (reduce +)))
+
+(defn add-hours [data chiffre]
+  (map (fn [patient] (if (= (:chiffre patient) chiffre)
+                      (update patient :hours conj {:date (new js/Date 2) :hours 1})
+                      patient))
+       data))
 
 (defn patient [{:keys [idx chiffre hours]}]
   [:> rn/View
@@ -45,15 +42,13 @@
                           :style (tw "mr-1")}]]]
    [:> rn/View
     {:style (tw "flex-row items-center pt-3")}
-    [button {:on-press #(prn "hi")}
-     [:> rn/Text {:style (tw "text-3xl text-white")} "-"]]
     [:> rn/View
      [:> rn/Text
       {:style (tw "text-2xl px-4 pb-3")}
       (->> hours
            (map :hours)
            (reduce +))]]
-    [button {:on-press #(prn "hi")}
+    [button {:on-press (fn [] (swap! data #(add-hours % chiffre)))}
      [:> rn/Text {:style (tw "text-3xl text-white")} "+"]]]])
 
 (defn new-patient [{:keys [chiffre update-chiffre create-new-patient]}]
