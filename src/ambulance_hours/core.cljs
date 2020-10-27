@@ -59,7 +59,7 @@
      :auto-focus true
      :on-blur #(when (= chiffre "") (update-chiffre nil))
      :placeholder "Chiffre"
-     :value chiffre :on-change-text update-chiffre}]
+     :default-value chiffre :on-change-text update-chiffre}]
    [:> rn/TouchableHighlight
     {:on-press (fn []) :style (merge
                               {:shadowColor "#000",
