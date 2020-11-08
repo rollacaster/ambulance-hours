@@ -6,7 +6,8 @@
    ["tailwind-rn" :as tw]
    [cljs.reader :refer [read-string]]
    ["@expo/vector-icons" :as icons]
-   ["@react-navigation/native" :as nav]))
+   ["@react-navigation/native" :as nav]
+   ["@react-navigation/stack" :as stack]))
 
 (defonce data (r/atom ()))
 
@@ -114,32 +115,42 @@
     {:style (tw "text-white")}
     "made with 💖"]])
 
+(def nav-stack (stack/createStackNavigator))
+
+(defn home []
+  (let [new-chiffre (r/atom nil)]
+    (fn []
+      [:> rn/SafeAreaView
+       {:style (tw "flex-1 justify-center items-center bg-orange-400")}
+       [:> rn/View
+        {:style (tw "flex-1 pt-6 bg-white w-full")}
+        [total {:data @data}]
+        [:> rn/ScrollView
+         (when @new-chiffre
+           [new-patient {:chiffre @new-chiffre
+                         :update-chiffre #(reset! new-chiffre %)
+                         :create-new-patient (fn [chiffre]
+                                               (swap! data conj {:chiffre chiffre :hours []})
+                                               (reset! new-chiffre nil))}])
+         (map-indexed
+          (fn [idx {:keys [chiffre hours]}]
+            [patient {:key idx :idx idx :chiffre chiffre :hours hours}])
+          @data)]
+          [add-patient-button {:add #(reset! new-chiffre "")}]]
+       [footer]])))
+
+
 (defn root []
   (-> (.getItem rn/AsyncStorage "data")
       (.then (fn [loaded-data] (if loaded-data (read-string loaded-data) @data)))
       (.then #(reset! data %)))
-  (let [new-chiffre (r/atom nil)]
-    (fn []
-      [:> nav/NavigationContainer
-       [:> rn/SafeAreaView
-        {:style (tw "flex-1 items-center bg-orange-400")}
-        [header]
-        [:> rn/View
-         {:style (tw "flex-1 pt-6 bg-white w-full")}
-         [total {:data @data}]
-         [:> rn/ScrollView
-          (when @new-chiffre
-            [new-patient {:chiffre @new-chiffre
-                          :update-chiffre #(reset! new-chiffre %)
-                          :create-new-patient (fn [chiffre]
-                                                (swap! data conj {:chiffre chiffre :hours []})
-                                                (reset! new-chiffre nil))}])
-          (map-indexed
-           (fn [idx {:keys [chiffre hours]}]
-             [patient {:key idx :idx idx :chiffre chiffre :hours hours}])
-           @data)]
-         [add-patient-button {:add #(reset! new-chiffre "")}]]
-        [footer]]])))
+  (fn []
+    [:> nav/NavigationContainer
+     [:> (.-Navigator nav-stack)
+      [:> (.-Screen nav-stack) {:name "Ambulante Stunden" :component (r/reactify-component home)
+                                :options #js {:headerStyle (tw "bg-orange-400")
+                                              :headerTintColor "#fff"
+                                              :headerTitleStyle (tw "text-2xl")}}]]]))
 
 (defn start
   {:dev/after-load true}
