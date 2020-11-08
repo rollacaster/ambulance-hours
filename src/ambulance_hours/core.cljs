@@ -5,7 +5,8 @@
    [shadow.expo :as expo]
    ["tailwind-rn" :as tw]
    [cljs.reader :refer [read-string]]
-   ["@expo/vector-icons" :as icons]))
+   ["@expo/vector-icons" :as icons]
+   ["@react-navigation/native" :as nav]))
 
 (defonce data (r/atom ()))
 
@@ -119,25 +120,26 @@
       (.then #(reset! data %)))
   (let [new-chiffre (r/atom nil)]
     (fn []
-      [:> rn/SafeAreaView
-       {:style (tw "flex-1 items-center bg-orange-400")}
-       [header]
-       [:> rn/View
-        {:style (tw "flex-1 pt-6 bg-white w-full")}
-        [total {:data @data}]
-        [:> rn/ScrollView
-         (when @new-chiffre
-           [new-patient {:chiffre @new-chiffre
-                         :update-chiffre #(reset! new-chiffre %)
-                         :create-new-patient (fn [chiffre]
-                                               (swap! data conj {:chiffre chiffre :hours []})
-                                               (reset! new-chiffre nil))}])
-         (map-indexed
-          (fn [idx {:keys [chiffre hours]}]
-            [patient {:key idx :idx idx :chiffre chiffre :hours hours}])
-          @data)]
-        [add-patient-button {:add #(reset! new-chiffre "")}]]
-       [footer]])))
+      [:> nav/NavigationContainer
+       [:> rn/SafeAreaView
+        {:style (tw "flex-1 items-center bg-orange-400")}
+        [header]
+        [:> rn/View
+         {:style (tw "flex-1 pt-6 bg-white w-full")}
+         [total {:data @data}]
+         [:> rn/ScrollView
+          (when @new-chiffre
+            [new-patient {:chiffre @new-chiffre
+                          :update-chiffre #(reset! new-chiffre %)
+                          :create-new-patient (fn [chiffre]
+                                                (swap! data conj {:chiffre chiffre :hours []})
+                                                (reset! new-chiffre nil))}])
+          (map-indexed
+           (fn [idx {:keys [chiffre hours]}]
+             [patient {:key idx :idx idx :chiffre chiffre :hours hours}])
+           @data)]
+         [add-patient-button {:add #(reset! new-chiffre "")}]]
+        [footer]]])))
 
 (defn start
   {:dev/after-load true}
