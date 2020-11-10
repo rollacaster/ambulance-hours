@@ -9,7 +9,9 @@
    ["@react-navigation/native" :as nav]
    ["@react-navigation/stack" :as stack]
    ["date-fns" :as date-fns]
-   ["@react-native-community/datetimepicker" :as picker]))
+   ["@react-native-community/datetimepicker" :as picker]
+   ["victory-native" :as victory]
+   ["react-native-svg" :as svg]))
 
 (def data (r/atom ()))
 (defn save-data [data]
@@ -114,8 +116,26 @@
   [:> rn/View
    {:style (tw "items-center")}
    [:> rn/View
-    {:style (tw "mb-4 bg-orange-200 px-5 rounded-lg")}
-    [:> rn/Text {:style (tw "text-gray-900 text-6xl font-extrabold tracking-wide")} (total-hours data)]]])
+    {:style (tw "relative justify-center")}
+    (let [size 200]
+      [:> svg/Svg {:width size :height size}
+       [:> victory/VictoryPie
+        {:standalone false
+         :padding 20
+         :width size :height size
+         :innerRadius (* size 0.35)
+         :colorScale [(.-color (tw "text-orange-400"))
+                      (.-color (tw "text-gray-300"))]
+         :labels (fn [] nil)
+         :data [{ :y (- 600 (total-hours data)) }
+                { :y (total-hours data) }]}]])
+    [:> rn/Text {:style (merge
+                         {:top 60 :left "50%" :transform [{:translateX (case (count (str (total-hours data)))
+                                                                         1 -110
+                                                                         2 -127
+                                                                         3 -155)}]}
+                         (js->clj (tw "absolute text-6xl font-extrabold tracking-wide text-center")))}
+     (total-hours data)]]])
 
 (defn footer []
   [:> rn/View
@@ -130,7 +150,7 @@
   (let [new-chiffre (r/atom nil)]
     (fn []
       [:> rn/View
-       {:style (tw "flex-1 pt-6 bg-white w-full")}
+       {:style (tw "flex-1 bg-white w-full")}
        [total {:data @data}]
        [:> rn/ScrollView
         (when @new-chiffre
