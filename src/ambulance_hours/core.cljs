@@ -11,14 +11,9 @@
    ["date-fns" :as date-fns]
    ["@react-native-community/datetimepicker" :as picker]))
 
-(def data (r/atom (list
-                   {:chiffre "TS160990", :hours [{:date #inst "2020-11-09T07:47:22.498-00:00"}
-                                                 {:date #inst "2020-11-09T10:47:22.965-00:00"}
-                                                 {:date #inst "2020-11-09T10:47:22.965-00:00"}
-                                                 {:date #inst "2020-11-09T10:47:22.965-00:00"}
-                                                 {:date #inst "2020-11-09T10:47:22.965-00:00"}
-                                                 {:date #inst "2020-11-09T10:47:22.965-00:00"}
-                                                 {:date #inst "2020-11-09T10:47:22.965-00:00"}]})))
+(def data (r/atom ()))
+(defn save-data [data]
+  (.setItem rn/AsyncStorage "data" (prn-str data)))
 
 (defn button [{:keys [on-press secondary]} children]
   [:> rn/TouchableHighlight
@@ -64,7 +59,7 @@
         {:style (tw "text-2xl px-4 pb-3")}
         hours-count]]
       [:> rn/View {:style (tw "mb-3")}
-       [button {:on-press (fn [] (swap! data #(add-hours % chiffre)))}
+       [button {:on-press (fn [] (save-data (swap! data #(add-hours % chiffre))))}
         [:> rn/Text {:style (tw "text-2xl text-white")} "+"]]]]]))
 
 (defn new-patient [{:keys [chiffre update-chiffre create-new-patient]}]
@@ -142,7 +137,7 @@
           [new-patient {:chiffre @new-chiffre
                         :update-chiffre #(reset! new-chiffre %)
                         :create-new-patient (fn [chiffre]
-                                              (swap! data conj {:chiffre chiffre :hours []})
+                                              (save-data (swap! data conj {:chiffre chiffre :hours []}))
                                               (reset! new-chiffre nil))}])
         (map-indexed
          (fn [idx {:keys [chiffre hours]}]
@@ -174,7 +169,9 @@
   (or ^js (.-params (:route props)) "TS160990"))
 
 (defn update-details-data [new-details-data chiffre]
-  (swap! data (fn [data] (map #(if (= chiffre (:chiffre %)) new-details-data %) data))))
+  (-> data
+      (swap! (fn [data] (map #(if (= chiffre (:chiffre %)) new-details-data %) data)))
+      save-data))
 
 (defn time-change [props]
   (let [{:keys [chiffre hours-idx]} (or (:params (:route (js->clj props :keywordize-keys true))) {:chiffre "TS160990" :hours-idx 0})
