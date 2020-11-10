@@ -11,13 +11,23 @@
    ["date-fns" :as date-fns]
    ["@react-native-community/datetimepicker" :as picker]))
 
-(defonce data (r/atom (list
-                       {:chiffre "TS160990", :hours [{:date #inst "2020-11-09T07:47:22.498-00:00"}
-                                                     {:date #inst "2020-11-09T10:47:22.965-00:00"}]})))
+(def data (r/atom (list
+                   {:chiffre "TS160990", :hours [{:date #inst "2020-11-09T07:47:22.498-00:00"}
+                                                 {:date #inst "2020-11-09T10:47:22.965-00:00"}
+                                                 {:date #inst "2020-11-09T10:47:22.965-00:00"}
+                                                 {:date #inst "2020-11-09T10:47:22.965-00:00"}
+                                                 {:date #inst "2020-11-09T10:47:22.965-00:00"}
+                                                 {:date #inst "2020-11-09T10:47:22.965-00:00"}
+                                                 {:date #inst "2020-11-09T10:47:22.965-00:00"}]})))
 
 (defn button [{:keys [on-press secondary]} children]
   [:> rn/TouchableHighlight
-   {:style (tw (str (if secondary "bg-gray-400" "bg-orange-500") " justify-center items-center rounded px-3 py-2"))
+   {:style (merge {:shadowColor "#000",
+                   :shadowOffset {:width 0, :height 2},
+                   :shadowOpacity 0.25,
+                   :shadowRadius 3.84,
+                   :elevation 5}
+                  (js->clj (tw (str (if secondary "bg-gray-400" "bg-orange-400") " justify-center items-center rounded px-3 py-2"))))
     :on-press on-press}
    children])
 
@@ -144,11 +154,13 @@
 (defn details-date [{:keys [idx date on-remove on-edit]}]
   [:> rn/View {:style (tw (str "flex-row items-center px-6 py-4" (when (even? idx) " bg-gray-300")))}
    [:> rn/View {:style (tw "w-2/3")}
-    [:> rn/Text ((.-format date-fns) date "yyyy-MM-dd HH:mm")]]
+    [:> rn/Text {:style (tw "text-lg mb-1 font-bold")}(str "Stunde " (inc idx))]
+    [:> rn/Text {:style (tw "text-gray-800")}((.-format date-fns) date "yyyy-MM-dd HH:mm")]]
    [:> rn/View {:style (tw "w-1/3")}
     [:> rn/View {:style (tw "mb-2")}
      [button {:on-press on-edit} [:> rn/Text {:style (tw "text-white")} "Bearbeiten"]]]
-    [button {:on-press on-remove} [:> rn/Text {:style (tw "text-white")} "Löschen"]]]])
+    [button {:on-press on-remove :secondary true}
+     [:> rn/Text {:style (tw "text-gray-700")} "Löschen"]]]])
 
 (defn vec-remove
   "remove elem in coll"
@@ -197,12 +209,13 @@
         {:keys [chiffre hours]} details-data]
     [:> rn/View
      [:> rn/Text {:style (tw "pt-6 px-6 mb-4 text-3xl")} chiffre]
-     (map-indexed
-      (fn [idx {:keys [date]}]
-        [details-date {:key idx :idx idx :date date
-                       :on-remove #(update-details-data (update details-data :hours vec-remove idx) chiffre)
-                       :on-edit #(.navigate (:navigation props) "details-time-change" #js {:chiffre chiffre :hours-idx idx})}])
-      hours)]))
+     [:> rn/ScrollView
+      (map-indexed
+       (fn [idx {:keys [date]}]
+         [details-date {:key idx :idx idx :date date
+                        :on-remove #(update-details-data (update details-data :hours vec-remove idx) chiffre)
+                        :on-edit #(.navigate (:navigation props) "details-time-change" #js {:chiffre chiffre :hours-idx idx})}])
+       hours)]]))
 
 
 (defn root []
