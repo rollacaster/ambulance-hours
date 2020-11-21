@@ -227,12 +227,13 @@
     [:> rn/View {:style (tw "mb-8 pb-8")}
      [:> rn/Text {:style (tw "pt-6 px-6 mb-4 text-3xl")} chiffre]
      [:> rn/ScrollView
-      (map-indexed
-       (fn [idx {:keys [date]}]
-         [details-date {:key idx :idx idx :date date
-                        :on-remove #(update-details-data (update details-data :hours vec-remove idx) chiffre)
-                        :on-edit #(.navigate (:navigation props) "details-time-change" #js {:chiffre chiffre :hours-idx idx})}])
-       hours)]]))
+      (->> hours
+           reverse
+           (map-indexed
+            (fn [idx {:keys [date]}]
+              [details-date {:key idx :idx (- (dec (count hours)) idx) :date date
+                             :on-remove #(update-details-data (update details-data :hours vec-remove idx) chiffre)
+                             :on-edit #(.navigate (:navigation props) "details-time-change" #js {:chiffre chiffre :hours-idx idx})}])))]]))
 
 
 (defn root []
