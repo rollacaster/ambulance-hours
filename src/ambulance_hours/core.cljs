@@ -124,8 +124,8 @@
          :padding 20
          :width size :height size
          :innerRadius (* size 0.35)
-         :colorScale [(.-color (tw "text-orange-400"))
-                      (.-color (tw "text-gray-300"))]
+         :colorScale [(.-color (tw "text-gray-300"))
+                      (.-color (tw "text-orange-400"))]
          :labels (fn [] nil)
          :data [{ :y (- 600 (total-hours data)) }
                 { :y (total-hours data) }]}]])
