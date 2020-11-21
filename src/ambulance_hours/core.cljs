@@ -224,7 +224,7 @@
 (defn details [props]
   (let [details-data (get-details-data (get-chiffre-from-props props))
         {:keys [chiffre hours]} details-data]
-    [:> rn/View
+    [:> rn/View {:style (tw "mb-8 pb-8")}
      [:> rn/Text {:style (tw "pt-6 px-6 mb-4 text-3xl")} chiffre]
      [:> rn/ScrollView
       (map-indexed
