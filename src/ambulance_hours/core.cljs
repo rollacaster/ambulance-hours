@@ -194,9 +194,7 @@
       save-data))
 
 (defn time-change [props]
-  (let [{:keys [chiffre hours-idx]} (or (:params (:route (js->clj props :keywordize-keys true))) {:chiffre "TS160990" :hours-idx 0})
-        details-data (get-details-data chiffre)
-        {:keys [date]} (nth (:hours details-data) hours-idx)
+  (let [{:keys [on-edit date]} (:params (:route (js->clj props :keywordize-keys true)))
         new-date (r/atom date)]
     (fn []
       [:> rn/View
@@ -214,7 +212,7 @@
         [:> rn/View {:style (tw "w-2/3")}
          [:> rn/View {:style (tw "mb-3")}
           [button {:on-press #(do
-                                (update-details-data (assoc-in details-data [:hours hours-idx :date] @new-date) chiffre)
+                                (on-edit @new-date)
                                 (.goBack ^js (:navigation props)))}
            [:> rn/Text {:style (tw "text-white")} "Speichern"]]]
          [button {:secondary true
@@ -227,13 +225,16 @@
     [:> rn/View {:style (tw "mb-8 pb-8")}
      [:> rn/Text {:style (tw "pt-6 px-6 mb-4 text-3xl")} chiffre]
      [:> rn/ScrollView
-      (->> hours
-           reverse
-           (map-indexed
-            (fn [idx {:keys [date]}]
-              [details-date {:key idx :idx (- (dec (count hours)) idx) :date date
-                             :on-remove #(update-details-data (update details-data :hours vec-remove idx) chiffre)
-                             :on-edit #(.navigate (:navigation props) "details-time-change" #js {:chiffre chiffre :hours-idx idx})}])))]]))
+      (let [sorted-hours (sort-by :date (fn [a b] (> (.getTime a) (.getTime b))) hours)]
+        (map-indexed
+         (fn [idx {:keys [date]}]
+           [details-date {:key idx :idx (- (dec (count hours)) idx) :date date
+                          :on-remove #(update-details-data (assoc details-data :hours (vec-remove (into [] sorted-hours) idx)) chiffre)
+                          :on-edit #(.navigate (:navigation props) "details-time-change" #js
+                                               {:date date
+                                                :on-edit (fn [new-date]
+                                                           (update-details-data (assoc-in details-data [:hours idx :date] new-date) chiffre))})}])
+         sorted-hours))]]))
 
 
 (defn root []
