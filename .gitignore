@@ -14,3 +14,4 @@ web-report/
 .DS_Store
 /app/
 /.shadow-cljs/
+/src/ambulance_hours/.expo/
