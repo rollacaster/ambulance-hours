@@ -11,11 +11,29 @@
    ["date-fns" :as date-fns]
    ["@react-native-community/datetimepicker" :as picker]
    ["victory-native" :as victory]
-   ["react-native-svg" :as svg]))
+   ["react-native-svg" :as svg]
+   ["expo-file-system" :as fs]
+   ["expo-device" :as device]))
 
 (def data (r/atom ()))
+
 (defn save-data [data]
-  (.setItem rn/AsyncStorage "data" (prn-str data)))
+  (let [path (str fs/documentDirectory "data.edn")]
+    (-> (.setItem rn/AsyncStorage "data" (prn-str data))
+        (.then
+         (fs/writeAsStringAsync
+          path
+          (prn-str data)))
+        (.then
+         (fn []
+           (->(fs/uploadAsync
+               "http://192.168.178.20:8000/backup"
+               path
+               #js {:uploadType fs/FileSystemUploadType.MULTIPART
+                    :fieldName "data"
+                    :parameters #js {:device-name device/deviceName}})
+              (.catch (fn [e] (prn "error" e)))))))))
+
 
 (defn button [{:keys [on-press secondary]} children]
   [:> rn/TouchableHighlight
