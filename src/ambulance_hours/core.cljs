@@ -6,6 +6,7 @@
    ["tailwind-rn" :as tw]
    [cljs.reader :refer [read-string]]
    ["@expo/vector-icons" :as icons]
+   ["@react-navigation/drawer" :as drawer]
    ["@react-navigation/native" :as nav]
    ["@react-navigation/stack" :as stack]
    ["date-fns" :as date-fns]
@@ -163,26 +164,56 @@
     "made with 💖"]])
 
 (def nav-stack (stack/createStackNavigator))
+(def main-stack (stack/createStackNavigator))
+(def nav-drawer (drawer/createDrawerNavigator))
+
+(defn screen [children]
+  [:> rn/SafeAreaView
+   {:style (tw "flex-1 bg-orange-400")}
+   children
+   [footer]])
+
+(defn yearly-stats [data]
+  (->> data
+       (mapcat :hours)
+       (map #(assoc % :year (js/parseInt ((.-format date-fns) (:date %) "yyyy"))))
+       (group-by :year)
+       (map (fn [[year hours]] {:year year :hours-count (count hours)}))
+       (sort-by :year)
+       reverse))
+
+(defn stats []
+  [screen
+   [:> rn/View {:style (tw "bg-white flex-1 w-full pt-6 px-6")}
+    [:> rn/Text {:style (tw "text-2xl pb-6")}
+     "Statistiken"]
+    (map
+     (fn [{:keys [year hours-count]}]
+       [:> rn/View {:style (tw "flex-row justify-between pr-12 mb-2") :key year}
+        [:> rn/Text {:style (tw "text-xl mr-6")} year]
+        [:> rn/Text {:style (tw "text-xl font-bold text-right")} (str hours-count (if (> hours-count 1) " Stunden" " Stunde"))]])
+     (yearly-stats @data))]])
 
 (defn home [props]
   (let [new-chiffre (r/atom nil)]
     (fn []
-      [:> rn/View
-       {:style (tw "flex-1 bg-white w-full")}
-       [total {:data @data}]
-       [:> rn/ScrollView
-        (when @new-chiffre
-          [new-patient {:chiffre @new-chiffre
-                        :update-chiffre #(reset! new-chiffre %)
-                        :create-new-patient (fn [chiffre]
-                                              (save-data (swap! data conj {:chiffre chiffre :hours []}))
-                                              (reset! new-chiffre nil))}])
-        (map-indexed
-         (fn [idx {:keys [chiffre hours]}]
-           [patient {:key idx :idx idx :chiffre chiffre :hours hours
-                     :open-details (fn [] (.navigate (:navigation props) "details" chiffre))}])
-         @data)]
-       [add-patient-button {:add #(reset! new-chiffre "")}]])))
+      [screen
+       [:> rn/View
+        {:style (tw "flex-1 bg-white w-full")}
+        [total {:data @data}]
+        [:> rn/ScrollView
+         (when @new-chiffre
+           [new-patient {:chiffre @new-chiffre
+                         :update-chiffre #(reset! new-chiffre %)
+                         :create-new-patient (fn [chiffre]
+                                               (save-data (swap! data conj {:chiffre chiffre :hours []}))
+                                               (reset! new-chiffre nil))}])
+         (map-indexed
+          (fn [idx {:keys [chiffre hours]}]
+            [patient {:key idx :idx idx :chiffre chiffre :hours hours
+                      :open-details (fn [] (.navigate (:navigation props) "details" chiffre))}])
+          @data)]
+        [add-patient-button {:add #(reset! new-chiffre "")}]]])))
 
 (defn details-date [{:keys [idx date on-remove on-edit]}]
   [:> rn/View {:style (tw (str "flex-row items-center px-6 py-4" (when (even? idx) " bg-gray-300")))}
@@ -254,25 +285,35 @@
                                                            (update-details-data (assoc-in details-data [:hours idx :date] new-date) chiffre))})}])
          sorted-hours))]]))
 
+(defn home-nav []
+  [:> (.-Navigator nav-stack)
+   {:headerMode "none"}
+   [:> (.-Screen nav-stack) {:name "home" :component (r/reactify-component home)}]
+   [:> (.-Screen nav-stack) {:name "details" :component (r/reactify-component details)}]
+   [:> (.-Screen nav-stack) {:name "details-time-change" :component (r/reactify-component time-change)}]])
+
+(defn main-nav []
+  [:> (.-Navigator nav-drawer) {:initialRouteName "Home"}
+      [:> (.-Screen nav-drawer)
+       {:name "Home"
+        :component (r/reactify-component home-nav)}]
+      [:> (.-Screen nav-drawer)
+       {:name "Statistiken"
+        :component (r/reactify-component stats)}]])
+
 
 (defn root []
   (-> (.getItem rn/AsyncStorage "data")
       (.then (fn [loaded-data] (if loaded-data (read-string loaded-data) @data)))
       (.then #(reset! data %)))
   (fn []
-    [:> rn/SafeAreaView
-     {:style (tw "flex-1 bg-orange-400")}
-     [:> nav/NavigationContainer
-      [:> (.-Navigator nav-stack)
-       {:screenOptions #js {:headerStyle (tw "bg-orange-400")
-                            :headerTintColor "#fff"
-                            :headerTitleStyle (tw "text-2xl")
-                            :title "Ambulante Stunden"}}
-       [:> (.-Screen nav-stack) {:name "home" :component (r/reactify-component home)}]
-       [:> (.-Screen nav-stack) {:name "details" :component (r/reactify-component details)}]
-       [:> (.-Screen nav-stack) {:name "details-time-change" :component (r/reactify-component time-change)}]
-       ]]
-     [footer]]))
+    [:> nav/NavigationContainer
+     [:> (.-Navigator nav-stack)
+   {:screenOptions #js {:headerStyle (tw "bg-orange-400")
+                        :headerTintColor "#fff"
+                        :headerTitleStyle (tw "text-2xl")
+                        :title "Ambulante Stunden"}}
+      [:> (.-Screen nav-stack) {:name "main" :component (r/reactify-component main-nav)}]]]))
 
 (defn start
   {:dev/after-load true}
