@@ -1,11 +1,11 @@
 (ns ambulance-hours.server
-  (:require [clojure.edn :as edn]
-            [clojure.java.io :as io]
+  (:require [clojure.java.io :as io]
             [clojure.pprint :refer [pprint]]
             [clojure.string :as str]
-            [compojure.core :refer [defroutes POST]]
+            [compojure.core :refer [defroutes GET POST]]
             [ring.adapter.jetty :refer [run-jetty]]
-            [ring.middleware.multipart-params :as mp]))
+            [ring.middleware.edn :refer [wrap-edn-params]]
+            [ring.middleware.defaults :refer [api-defaults wrap-defaults]]))
 
 (defonce server (atom nil))
 
@@ -14,28 +14,39 @@
     (binding [*print-level* nil
               *print-length* nil]
       (io/make-parents resources-path)
-      (pprint (vec (edn/read-string data)) (io/writer resources-path)))))
+      (pprint data (io/writer resources-path)))))
+
+(defn backup-file-name [device-name last-backup]
+  (str "ambulance-hours-data-" device-name "-" last-backup ".edn"))
+
+(defn backup-date [last-backup]
+  (-> last-backup
+      (str/replace #" " "-")
+      (str/replace #":" "-")))
 
 (defn store-backup
-  [file device-name]
-  (write-edn (str "ambulance-hours-data-"
-                  (str/replace (str/lower-case device-name) #"[\s\W]" "")
-                  "-"
-                  (.format (java.text.SimpleDateFormat. "yyyy-MM-dd-HH-mm") (new java.util.Date))
-                  ".edn")
-             (slurp (file :tempfile)))
+  [device-name state]
+  (write-edn (backup-file-name device-name (.format (java.text.SimpleDateFormat. "yyyy-MM-dd-HH-mm") (new java.util.Date)))
+             state)
   {:status 200})
 
 (defroutes public-routes
-  (mp/wrap-multipart-params
-   (POST "/backup" {params :params}
-         (store-backup (get params "data")
-                       (get params "device-name")))))
+  (POST "/backup" [device-name state]
+        (prn device-name state)
+        (store-backup device-name state)
+        {:status 200})
+  (GET "/backup" [device-name last-backup]
+       {:status 200
+        :headers {"Content-Type" "application/edn"}
+        :body (slurp (str "backup/" (backup-file-name device-name last-backup)))}))
 
-(comment
-  (do
-    (.stop @server)
-    (reset! server nil)))
+(do
+  (.stop @server)
+  (reset! server nil))
 
 (when (not @server)
-  (reset! server (run-jetty public-routes {:port 8000 :join? false})))
+  (reset! server (run-jetty (wrap-edn-params
+                             (wrap-defaults
+                              public-routes
+                              api-defaults))
+                            {:port 8000 :join? false})))
