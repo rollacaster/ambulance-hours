@@ -351,7 +351,12 @@
 
 
 (defn root []
-  (-> (.getItem rn/AsyncStorage "state")
+  (-> (.getItem rn/AsyncStorage "data")
+      (.then (fn [res]
+               (when res
+                 (-> (save-data {:data (read-string res)})
+                     (.then (fn [] (.removeItem rn/AsyncStorage "data")))))))
+      (.then (fn [] (.getItem rn/AsyncStorage "state")))
       (.then (fn [loaded-state] (if loaded-state (read-string loaded-state) {:data []})))
       (.then #(reset! state %)))
   (fn []
