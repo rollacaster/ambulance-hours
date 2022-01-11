@@ -40,7 +40,7 @@
         :headers {"Content-Type" "application/edn"}
         :body (slurp (str "backup/" (backup-file-name device-name last-backup)))}))
 
-(do
+#_(do
   (.stop @server)
   (reset! server nil))
 

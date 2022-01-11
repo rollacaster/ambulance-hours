@@ -189,7 +189,7 @@
          [button {:on-press (fn []
                               (let [last-backup (format-date (new js/Date))]
                                 (-> (js/fetch
-                                     "http://192.168.178.20:8000/backup"
+                                     "http://192.168.178.72:8000/backup"
                                      (clj->js {:method "POST"
                                                :headers {"content-type" "application/edn"}
                                                :body (prn-str
@@ -332,7 +332,7 @@
 
 (defn home-nav []
   [:> (.-Navigator nav-stack)
-   {:headerMode "none"}
+   {:headerShown false}
    [:> (.-Screen nav-stack) {:name "home" :component (r/reactify-component home)}]
    [:> (.-Screen nav-stack) {:name "details" :component (r/reactify-component details)}]
    [:> (.-Screen nav-stack) {:name "details-time-change" :component (r/reactify-component time-change)}]])
