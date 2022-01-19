@@ -109,16 +109,6 @@
      {:style (tw "text-white text-5xl font-bold")}
      "+"]]])
 
-(defn header []
-  [:> rn/View
-   {:style (tw "bg-orange-400 w-full p-3")}
-   [:> rn/View {:style (tw "flex-row items-center")}
-    [:> icons/EvilIcons {:name "clock" :size 48 :color "white"
-                         :style (tw "mr-1")}]
-    [:> rn/Text
-     {:style (tw "text-3xl text-white")}
-     "Ambulante Stunden"]]])
-
 (defn total [{:keys [data]}]
   [:> rn/View
    {:style (tw "items-center")}
@@ -152,7 +142,6 @@
     "made with 💖"]])
 
 (def nav-stack (stack/createStackNavigator))
-(def main-stack (stack/createStackNavigator))
 (def nav-drawer (drawer/createDrawerNavigator))
 
 (defn screen [children]
@@ -162,12 +151,20 @@
    [footer]])
 
 (defn yearly-stats [data]
-  (->> data
+  (->> (update-in (vec data) [0 :hours] conj {:date #inst "2021-05-02T18:13:18.077-00:00"})
        (mapcat :hours)
        (map #(assoc % :year (js/parseInt ((.-format date-fns) (:date %) "yyyy"))))
        (group-by :year)
-       (map (fn [[year hours]] {:year year :hours-count (count hours)}))
-       (sort-by :year)
+       (map (fn [[year hours]]
+              [year
+               {:hours-count (count hours)
+                :quarters (->> hours
+                               (map (fn [hour] (assoc hour :quarter ((.-format date-fns) (:date hour) "QQQ"))))
+                               (group-by :quarter)
+                               (sort-by first)
+                               reverse
+                               (mapv (fn [[quarter hours]] [quarter {:hours-count (count hours)}])))}]))
+       (sort-by first)
        reverse))
 
 (defn prepare-device-name [device-name]
@@ -184,7 +181,6 @@
     (fn []
       [screen
        [:> rn/View {:style (tw "bg-white flex-1 w-full pt-6 px-6")}
-        [:> rn/Text {:style (tw "text-2xl pb-6")} "Backup"]
         [:> rn/View {:style (tw "mb-3")}
          [button {:on-press (fn []
                               (let [last-backup (format-date (new js/Date))]
@@ -208,7 +204,7 @@
          [button {:on-press (fn []
                               (reset! backup-loading "LOADING")
                               (->(js/fetch
-                                  (str "http://192.168.178.20:8000/backup?device-name="
+                                  (str "http://192.168.178.72:8000/backup?device-name="
                                        (prepare-device-name device/deviceName)
                                        "&last-backup="
                                        (prepare-last-backup (:last-backup @state)))
@@ -230,14 +226,18 @@
 (defn stats []
   [screen
    [:> rn/View {:style (tw "bg-white flex-1 w-full pt-6 px-6")}
-    [:> rn/Text {:style (tw "text-2xl pb-6")}
-     "Statistiken"]
     (map
-     (fn [{:keys [year hours-count]}]
-       [:<> {:key year}
+     (fn [[year {:keys [hours-count quarters]}]]
+       [:> rn/View {:key year}
         [:> rn/View {:style (tw "flex-row justify-between pr-12 mb-2")}
          [:> rn/Text {:style (tw "text-xl mr-6")} year]
-         [:> rn/Text {:style (tw "text-xl font-bold text-right")} (str hours-count (if (> hours-count 1) " Stunden" " Stunde"))]]])
+         [:> rn/Text {:style (tw "text-xl font-bold text-right")} (str hours-count (if (> hours-count 1) " Stunden" " Stunde"))]]
+        (map
+         (fn [[quarter {:keys [hours-count]}]]
+           [:> rn/View {:style (tw "flex-row justify-between pr-12 mb-2 ml-4") :key quarter}
+            [:> rn/Text {:style (tw "text-l mr-7")} quarter]
+            [:> rn/Text {:style (tw "text-l font-bold text-right")} (str hours-count (if (> hours-count 1) " Stunden" " Stunde"))]])
+         quarters)])
      (yearly-stats (:data @state)))]])
 
 (defn home [props]
@@ -284,7 +284,7 @@
   (or ^js (.-params (:route props)) "TS160990"))
 
 (defn update-details-data [new-details-data chiffre]
-  (-> (swap! state update :data (fn [data] (map #(if (= chiffre (:chiffre %)) new-details-data %) data)))
+  (-> (swap! state update :data (fn [data] (mapv #(if (= chiffre (:chiffre %)) new-details-data %) data)))
       save-data))
 
 (defn time-change [props]
@@ -332,13 +332,13 @@
 
 (defn home-nav []
   [:> (.-Navigator nav-stack)
-   {:headerShown false}
-   [:> (.-Screen nav-stack) {:name "home" :component (r/reactify-component home)}]
+   {:screenOptions {:headerShown false}}
+   [:> (.-Screen nav-stack) {:name "home1" :component (r/reactify-component home)}]
    [:> (.-Screen nav-stack) {:name "details" :component (r/reactify-component details)}]
    [:> (.-Screen nav-stack) {:name "details-time-change" :component (r/reactify-component time-change)}]])
 
 (defn main-nav []
-  [:> (.-Navigator nav-drawer) {:initialRouteName "Home"}
+  [:> (.-Navigator nav-drawer) {:initialRouteName "Statistiken"}
    [:> (.-Screen nav-drawer)
     {:name "Home"
      :component (r/reactify-component home-nav)}]

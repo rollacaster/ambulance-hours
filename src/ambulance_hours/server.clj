@@ -1,7 +1,6 @@
 (ns ambulance-hours.server
   (:require [clojure.java.io :as io]
             [clojure.pprint :refer [pprint]]
-            [clojure.string :as str]
             [compojure.core :refer [defroutes GET POST]]
             [ring.adapter.jetty :refer [run-jetty]]
             [ring.middleware.edn :refer [wrap-edn-params]]
@@ -18,11 +17,6 @@
 
 (defn backup-file-name [device-name last-backup]
   (str "ambulance-hours-data-" device-name "-" last-backup ".edn"))
-
-(defn backup-date [last-backup]
-  (-> last-backup
-      (str/replace #" " "-")
-      (str/replace #":" "-")))
 
 (defn store-backup
   [device-name state]
