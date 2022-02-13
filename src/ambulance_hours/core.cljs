@@ -225,7 +225,7 @@
 
 (defn stats []
   [screen
-   [:> rn/View {:style (tw "bg-white flex-1 w-full pt-6 px-6")}
+   [:> rn/ScrollView {:style (tw "bg-white flex-1 w-full pt-6 px-6 mb-3")}
     (map
      (fn [[year {:keys [hours-count quarters]}]]
        [:> rn/View {:key year}
@@ -338,7 +338,7 @@
    [:> (.-Screen nav-stack) {:name "details-time-change" :component (r/reactify-component time-change)}]])
 
 (defn main-nav []
-  [:> (.-Navigator nav-drawer) {:initialRouteName "Statistiken"}
+  [:> (.-Navigator nav-drawer) {:initialRouteName "Home"}
    [:> (.-Screen nav-drawer)
     {:name "Home"
      :component (r/reactify-component home-nav)}]
