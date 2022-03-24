@@ -1,2 +1,7 @@
 * Ambulance Hours
-Hour tracking for psychologist
+Hour tracking for psychologists
+** Screenshots
+[[./docs/screenshots/home.png]]
+[[./docs/screenshots/details.png]]
+[[./docs/screenshots/stats.png]]
+
