@@ -1,13 +1,15 @@
-{:source-paths
- ["src"]
-
- :dependencies
- [[reagent "0.10.0"]]
-
+{:deps true
+ :dev-http {9604 {:root "public/"}}
  :builds
  {:app
-  {:target :react-native
-   :init-fn ambulance-hours.core/init
-   :output-dir "app"
-   :devtools {:autoload true
-              :preloads [shadow.expo.keep-awake]}}}}
+  {:target :browser
+   :asset-path "/"
+   :compiler-options {:output-feature-set :es6}
+   :devtools {:watch-dir "public"}
+   :modules {:shared {:entries []}
+                  :service-worker {:entries [ambulance-hours.service-worker]
+                                   :depends-on #{:shared}
+                                   :web-worker true}
+             :main {:init-fn ambulance-hours.core/init
+                    :depends-on #{:shared}}}
+   :output-dir "public"}}}
