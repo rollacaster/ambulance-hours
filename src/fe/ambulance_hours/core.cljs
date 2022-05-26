@@ -116,7 +116,9 @@
    [:span.text-white "made with 💖"]])
 
 (defn yearly-stats [data]
-  (->> (update-in (vec data) [0 :hours] conj {:date #inst "2021-05-02T18:13:18.077-00:00"})
+  ;; TODO find other solution for this one hour
+  (->> #_(update-in (vec data) [0 :hours] conj {:date #inst "2021-05-02T18:13:18.077-00:00"})
+       (vec data)
        (mapcat :hours)
        (map #(assoc % :year (js/parseInt ((.-format date-fns) (:date %) "yyyy"))))
        (group-by :year)
