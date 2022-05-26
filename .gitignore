@@ -25,3 +25,5 @@ web-report/
 /public/shared.js
 /public/service-worker.js
 /public/css/
+
+.vercel
