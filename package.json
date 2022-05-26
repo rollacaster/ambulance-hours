@@ -1,10 +1,19 @@
 {
+  "scripts": {
+    "build": "postcss resources/*.css --dir public/css",
+    "dev": "postcss resources/*.css --dir public-dev/static/css -w"
+  },
   "dependencies": {
+    "autoprefixer": "^10.4.7",
+    "cssnano": "^5.1.9",
     "d3": "^7.4.4",
     "date-fns": "^2.28.0",
+    "postcss": "^8.4.14",
+    "postcss-cli": "^9.1.0",
     "react": "18.1.0",
     "react-dom": "18.1.0",
-    "shadow-cljs": "^2.19.0"
+    "shadow-cljs": "^2.19.0",
+    "tailwindcss": "^3.0.24"
   },
   "private": true
 }

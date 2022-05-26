@@ -22,3 +22,6 @@ web-report/
 /package-lock.json
 /public/main.js
 /public/manifest.edn
+/public/shared.js
+/public/service-worker.js
+/public/css/

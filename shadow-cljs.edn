@@ -5,5 +5,10 @@
   {:target :browser
    :asset-path "/"
    :compiler-options {:output-feature-set :es6}
-   :modules {:main {:init-fn ambulance-hours.core/init}}
+   :modules {:shared {:entries []}
+                  :service-worker {:entries [ambulance-hours.service-worker]
+                                   :depends-on #{:shared}
+                                   :web-worker true}
+             :main {:init-fn ambulance-hours.core/init
+                    :depends-on #{:shared}}}
    :output-dir "public"}}}

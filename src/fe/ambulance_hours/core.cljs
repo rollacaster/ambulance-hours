@@ -313,9 +313,17 @@
    ["/stats" {:name ::stats :view stats}]
    ["/backup" {:name ::backup :view backup}]])
 
+(defn register-service-worker []
+  (when (.-serviceWorker js/navigator)
+    (try
+      (.register js/navigator.serviceWorker "/service-worker.js")
+      (catch :default e
+        (js/console.error "Registration failed with" e)))))
+
 (defn init []
   (rfe/start!
    (rf/router routes {:data {:coercion rss/coercion}})
    (fn [m] (reset! match m))
    {:use-framgent true})
-  (dom/render [root] (.getElementById js/document "app")))
+  (dom/render [root] (.getElementById js/document "app"))
+  (register-service-worker))

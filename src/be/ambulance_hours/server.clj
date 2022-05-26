@@ -3,6 +3,7 @@
             [clojure.pprint :refer [pprint]]
             [compojure.core :refer [defroutes GET POST]]
             [ring.adapter.jetty :refer [run-jetty]]
+            [ring.middleware.content-type :refer [wrap-content-type]]
             [ring.middleware.defaults :refer [api-defaults wrap-defaults]]
             [ring.middleware.edn :refer [wrap-edn-params]]
             [ring.middleware.resource :refer [wrap-resource]]
@@ -47,5 +48,6 @@
   (reset! server (run-jetty (-> public-routes
                                 (wrap-defaults api-defaults)
                                 wrap-edn-params
-                                (wrap-resource ""))
+                                (wrap-resource "")
+                                wrap-content-type)
                             {:port 8000 :join? false})))
