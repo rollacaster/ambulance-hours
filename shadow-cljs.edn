@@ -5,6 +5,7 @@
   {:target :browser
    :asset-path "/"
    :compiler-options {:output-feature-set :es6}
+   :devtools {:watch-dir "public"}
    :modules {:shared {:entries []}
                   :service-worker {:entries [ambulance-hours.service-worker]
                                    :depends-on #{:shared}

@@ -1,7 +1,7 @@
 {
   "scripts": {
     "build": "postcss resources/*.css --dir public/css",
-    "dev": "postcss resources/*.css --dir public-dev/static/css -w"
+    "dev": "postcss resources/*.css --dir public/css -w"
   },
   "dependencies": {
     "autoprefixer": "^10.4.7",
