@@ -277,6 +277,13 @@
                        "bg-orange-100 text-orange-900 rounded-lg")]}
    [:a.px-3 {:href href :on-click on-click} children]])
 
+(def routes
+  (r/atom
+   [["/" {:name ::main :view home :title "Home" :nav true}]
+    ["/details/:chiffre"
+     {:name ::details :view details :parameters {:path {:chiffre string?}}}]
+    ["/stats" {:name ::stats :view stats :title "Statistiken" :nav true}]]))
+
 (defn menu [{:keys [visible? toggle-menu]}]
   [:div.absolute.left-0.top-0.bg-gray-100.z-10
    {:class "w-2/3"
@@ -286,12 +293,12 @@
    [:nav.px-6.py-4.text-gray-700
     (let [active-page (:name (:data @match))]
       [:ul
-       [nav-link {:active? (= active-page ::main) :href (rfe/href ::main) :on-click toggle-menu}
-        "Home"]
-       [nav-link {:active? (= active-page ::stats) :href (rfe/href ::stats) :on-click toggle-menu}
-        "Statistiken"]
-       [nav-link {:active? (= active-page ::backup) :href (rfe/href ::backup) :on-click toggle-menu}
-        "Backup"]])]])
+       (->> @routes
+            (filter (fn [[_ {:keys [nav]}]] nav))
+            (map
+             (fn [[_ {:keys [name title]}]]
+               [nav-link {:active? (= active-page name) :href (rfe/href name) :on-click toggle-menu}
+                title])))])]])
 
 (defn root []
   (when-let [data (.getItem js/localStorage "data")]
@@ -307,13 +314,6 @@
              [view @match]))
          [footer]]))))
 
-(def routes
-  [["/" {:name ::main :view home}]
-   ["/details/:chiffre"
-    {:name ::details :view details :parameters {:path {:chiffre string?}}}]
-   ["/stats" {:name ::stats :view stats}]
-   ["/backup" {:name ::backup :view backup}]])
-
 (defn register-service-worker []
   (when (.-serviceWorker js/navigator)
     (try
@@ -322,9 +322,18 @@
         (js/console.error "Registration failed with" e)))))
 
 (defn init []
-  (rfe/start!
-   (rf/router routes {:data {:coercion rss/coercion}})
-   (fn [m] (reset! match m))
-   {:use-framgent true})
-  (dom/render [root] (.getElementById js/document "app"))
-  (register-service-worker))
+  (-> (js/fetch "/backup"  (clj->js {:headers {"content-type" "application/edn"}}))
+      (.then (fn [r]
+               (rfe/start!
+                (rf/router (if (not= (.-status r) 404)
+                             (swap! routes conj ["/backup" {:name ::backup :view backup :nav true :title "Backup"}])
+                             @routes)
+                           {:data {:coercion rss/coercion}})
+                (fn [m] (reset! match m))
+                {:use-framgent true})
+               (dom/render [root] (.getElementById js/document "app"))
+               (register-service-worker)))))
+
+(defn ^:dev/after-load clear-cache-and-render!
+  []
+  (init))

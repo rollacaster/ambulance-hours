@@ -37,7 +37,9 @@
   (GET "/backup" [device-name last-backup]
        {:status 200
         :headers {"Content-Type" "application/edn"}
-        :body (slurp (str "backup/" (backup-file-name device-name last-backup)))}))
+        :body (if (and device-name last-backup)
+                (slurp (str "backup/" (backup-file-name device-name last-backup)))
+                nil)}))
 
 (when @server
   (do
