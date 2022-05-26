@@ -18,3 +18,7 @@ web-report/
 /.cpcache/
 /.nrepl-port
 /backup/
+/public/cljs-runtime/
+/package-lock.json
+/public/main.js
+/public/manifest.edn
