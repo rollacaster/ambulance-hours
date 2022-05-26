@@ -287,23 +287,46 @@
   (-> (swap! state update :data (fn [data] (mapv #(if (= chiffre (:chiffre %)) new-details-data %) data)))
       save-data))
 
+(defn update-chiffre [old-chiffre new-chiffre]
+  (-> (swap! state update :data
+             (fn [data]
+               (mapv #(if (= old-chiffre (:chiffre %))
+                        (assoc % :chiffre new-chiffre)
+                        %)
+                     data)))
+      save-data)
+  (.back js/history)
+  (js/setTimeout
+   #(set! (.-href js/location) (rfe/href ::details {:chiffre new-chiffre}))
+   1))
+
 (defn details [props]
   (let [details-data (get-details-data (get-chiffre-from-props props))
-        {:keys [chiffre hours]} details-data]
-    [:div
-     {:style {:height "calc(100% - 60px - 40px)"}}
-     [:div.mt-6.px-6.mb-4.text-3xl chiffre]
-     [:div.overflow-scroll
-      {:style {:height "calc(100% - 76px)"}}
-      (->> hours
-           (map-indexed
-            (fn [idx {:keys [date id]}]
-              ^{:key id}
-              [:<>
-               [details-date {:hour (- (count hours) idx) :date date
-                              :on-remove #(update-details-data (update details-data :hours vec-remove idx) chiffre)
-                              :on-save (fn [new-date]
-                                         (update-details-data (assoc-in details-data [:hours idx :date] new-date) chiffre))}]])))]]))
+        {:keys [chiffre]} details-data
+        updated-chiffre (r/atom chiffre)]
+    (fn [props]
+      (let [details-data (get-details-data (get-chiffre-from-props props))
+            {:keys [chiffre hours]} details-data]
+        [:div
+         {:style {:height "calc(100% - 60px - 40px)"}}
+         [:div.mt-6.px-6.mb-4.flex
+          [:input.p-2.text-3xl.mr-2
+           {:value @updated-chiffre :style {:width "90%"}
+            :on-change (fn [^js e] (reset! updated-chiffre (.-target.value e)))}]
+          [button {:disabled (= chiffre @updated-chiffre)
+                   :on-click #(update-chiffre chiffre @updated-chiffre)}
+           "Speichern"]]
+         [:div.overflow-scroll
+          {:style {:height "calc(100% - 76px)"}}
+          (->> hours
+               (map-indexed
+                (fn [idx {:keys [date id]}]
+                  ^{:key id}
+                  [:<>
+                   [details-date {:hour (- (count hours) idx) :date date
+                                  :on-remove #(update-details-data (update details-data :hours vec-remove idx) chiffre)
+                                  :on-save (fn [new-date]
+                                             (update-details-data (assoc-in details-data [:hours idx :date] new-date) chiffre))}]])))]]))))
 
 (defonce match (r/atom nil))
 
