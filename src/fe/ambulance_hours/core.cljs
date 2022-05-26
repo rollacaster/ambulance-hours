@@ -336,7 +336,7 @@
                 (fn [m] (reset! match m))
                 {:use-framgent true})
                (dom/render [root] (.getElementById js/document "app"))
-               (register-service-worker)))))
+               #_(register-service-worker)))))
 
 (defn ^:dev/after-load clear-cache-and-render!
   []
