@@ -17,10 +17,13 @@
 (defn save-data [data]
   (.setItem js/localStorage "data" (prn-str data)))
 
-(defn button [{:keys [class on-click secondary disabled]} children]
+(defn button [{:keys [class on-click secondary disabled active]} children]
   [:button.justify-center.items-center.rounded.px-3.py-2
-   {:class [(when-not disabled (if secondary "bg-gray-400" "bg-orange-400"))
-            (when disabled "bg-gray-200 opacity-50 text-gray-400")
+   {:class [(cond
+              active "bg-gray-700 text-white"
+              disabled "bg-gray-200 opacity-50 text-gray-400"
+              secondary "bg-gray-400"
+              :else "bg-orange-400 text-white")
             class]
     :disabled disabled
     :on-click on-click}
@@ -134,6 +137,18 @@
        (sort-by first)
        reverse))
 
+(defn weekly-stats [data]
+  (->> data
+       (mapcat :hours)
+       (map :date)
+       (group-by (fn [date] [(date-fns/getYear date) (date-fns/getWeek date)]))
+       (sort-by first (fn [[y1 w1] [y2 w2]]
+                        (cond (< y1 y2) -1
+                              (> y1 y2) 1
+                              (< w1 w2) -1
+                              :else 1)))
+       (map (fn [[[year week] hours]] {:year year :week week :hours-count (count hours)}))))
+
 (defn prepare-last-backup [last-backup]
   (-> last-backup
       (str/replace #" " "-")
@@ -185,21 +200,37 @@
          [:span.text-lg.pb-12 "Letztes Backup: " @backup-loading])])))
 
 (defn stats []
-  [:div.bg-white.flex-1.w-full.pt-6.px-6.pb-3.overflow-scroll
-   {:style {:height "calc(100% - 100px)"}}
-   (map
-    (fn [[year {:keys [hours-count quarters]}]]
-      [:div {:key year}
-       [:div.flex.justify-between.pr-12.mb-2
-        [:span.text-xl.mr-6 year]
-        [:span.text-xl.font-bold.text-right (str hours-count (if (> hours-count 1) " Stunden" " Stunde"))]]
-       (map
-        (fn [[quarter {:keys [hours-count]}]]
-          [:div.flex.justify-between.pr-12.mb-2.ml-4 {:key quarter}
-           [:span.text-l.mr-7 quarter]
-           [:span.text-l.font-bold.text-right (str hours-count (if (> hours-count 1) " Stunden" " Stunde"))]])
-        quarters)])
-    (yearly-stats (:data @state)))])
+  (let [active (r/atom :quarterly)]
+    (fn []
+      [:div.bg-white.flex-1.w-full.pt-6.px-6.pb-3.overflow-scroll
+       {:style {:height "calc(100% - 100px)"}}
+       [:div.mb-4.flex.gap-2
+        [button {:active (= @active :quarterly) :on-click #(reset! active :quarterly)}
+         "Quartalsweise"]
+        [button {:active (= @active :weekly) :on-click #(reset! active :weekly)}
+         "Wöchentlich"]]
+       (if (= @active :quarterly)
+         (map
+          (fn [[year {:keys [hours-count quarters]}]]
+            [:div {:key year}
+             [:div.flex.justify-between.pr-12.mb-2
+              [:span.text-xl.mr-6 year]
+              [:span.text-xl.font-bold.text-right (str hours-count (if (> hours-count 1) " Stunden" " Stunde"))]]
+             (map
+              (fn [[quarter {:keys [hours-count]}]]
+                [:div.flex.justify-between.pr-12.mb-2.ml-4 {:key quarter}
+                 [:span.text-l.mr-7 quarter]
+                 [:span.text-l.font-bold.text-right (str hours-count (if (> hours-count 1) " Stunden" " Stunde"))]])
+              quarters)])
+          (yearly-stats (:data @state)))
+         [:ul
+          (map
+           (fn [{:keys [year week hours-count]}]
+             ^{:key [year week]}
+             [:li.flex.justify-between.text-lg
+              [:div [:span (str year)] [:span (str " KW " week)]]
+              [:div [:span.font-bold hours-count] " Stunde(n)"]])
+           (weekly-stats (:data @state)))])])))
 
 (defn home []
   (let [new-chiffre (r/atom nil)]
@@ -301,6 +332,7 @@
             (filter (fn [[_ {:keys [nav]}]] nav))
             (map
              (fn [[_ {:keys [name title]}]]
+               {:key name}
                [nav-link {:active? (= active-page name) :href (rfe/href name) :on-click toggle-menu}
                 title])))])]])
 
