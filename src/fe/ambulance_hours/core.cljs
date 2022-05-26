@@ -259,9 +259,11 @@
 (defn details [props]
   (let [details-data (get-details-data (get-chiffre-from-props props))
         {:keys [chiffre hours]} details-data]
-    [:div.mb-8.pb-8.h-full
+    [:div
+     {:style {:height "calc(100% - 60px - 40px)"}}
      [:div.mt-6.px-6.mb-4.text-3xl chiffre]
-     [:div
+     [:div.overflow-scroll
+      {:style {:height "calc(100% - 76px)"}}
       (->> hours
            (map-indexed
             (fn [idx {:keys [date id]}]
