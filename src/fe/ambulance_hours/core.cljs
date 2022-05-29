@@ -352,21 +352,24 @@
     ["/stats" {:name ::stats :view stats :title "Statistiken" :nav true}]]))
 
 (defn menu [{:keys [visible? toggle-menu]}]
-  [:div.absolute.left-0.top-0.bg-gray-100.z-10
-   {:class "w-2/3"
-    :style {:margin-top 60 :height "calc(100% - 60px - 40px)"
-            :left (if visible? "0%" "-100%")
-            :transition "all 300ms"}}
-   [:nav.px-6.py-4.text-gray-700
-    (let [active-page (:name (:data @match))]
-      [:ul
-       (->> @routes
-            (filter (fn [[_ {:keys [nav]}]] nav))
-            (map
-             (fn [[_ {:keys [name title]}]]
-               ^{:key name}
-               [nav-link {:active? (= active-page name) :href (rfe/href name) :on-click toggle-menu}
-                title])))])]])
+  [:div.absolute.left-0.top-0.h-full.z-10.w-full.flex
+   {:style
+    {:left (if visible? "0%" "-100%")
+     :transition "all 300ms"}}
+   [:div.bg-gray-100
+    {:class "w-2/3"
+     :style {:margin-top 60 :height "calc(100% - 60px - 40px)"}}
+    [:nav.px-6.py-4.text-gray-700
+     (let [active-page (:name (:data @match))]
+       [:ul
+        (->> @routes
+             (filter (fn [[_ {:keys [nav]}]] nav))
+             (map
+              (fn [[_ {:keys [name title]}]]
+                ^{:key name}
+                [nav-link {:active? (= active-page name) :href (rfe/href name) :on-click toggle-menu}
+                 title])))])]]
+   [:div {:on-click toggle-menu :class "w-1/3 h-full"}]])
 
 (defn root []
   (when-let [data (.getItem js/localStorage "data")]
