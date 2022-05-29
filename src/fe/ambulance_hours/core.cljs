@@ -155,31 +155,50 @@
       (str/replace #" " "-")
       (str/replace #":" "-")))
 
+(defn backup-csv [data]
+  (str/join "\n"
+            (let [longest-hours
+                  (->> data
+                       (map (fn [{:keys [hours]}] (count (map :date hours))))
+                       (apply max))]
+              (->> data
+                   (map (fn [{:keys [chiffre hours]}]
+                          (let [dates (map (comp format-date :date) hours)
+                                filled-dates (map-indexed
+                                              (fn [idx e]
+                                                (if (< idx (count dates)) (nth dates idx) e))
+                                              (repeat longest-hours ""))]
+                            (conj filled-dates chiffre))))
+                   (apply map vector)
+                   (map-indexed (fn [idx row] (if (= idx 0)
+                                               (cons "Chiffre" row)
+                                               (cons (str "Stunde " idx) row))))
+                   (map (fn [row] (str/join "," row)))))))
+
+(defn download-csv [csv-content file-name]
+  (let [encoded-uri (js/encodeURI (str "data:text/csv;charset=utf-8," csv-content))
+        link (js/document.createElement "a")]
+    (.setAttribute link "href" encoded-uri)
+    (.setAttribute link "download" file-name)
+    (.appendChild js/document.body link)
+    (.click link)
+    (.remove link)))
+
 (defn backup []
-  (let [error (r/atom nil)
-        backup-loading (r/atom nil)]
+  (let [backup-loading (r/atom nil)]
     (fn []
       [:div.bg-white.flex-1.w-full.pt-6.px-6
        [:div.mb-3
         [button {:on-click (fn []
-                             (let [last-backup (format-date (new js/Date))]
-                               (-> (js/fetch
-                                    "/backup"
-                                    (clj->js {:method "POST"
-                                              :headers {"content-type" "application/edn"}
-                                              :body (prn-str
-                                                     {:device-name "web"
-                                                      :state (assoc @state :last-backup last-backup)})}))
-                                   (.then (fn []
-                                            (reset! error false)
-                                            (save-data (swap! state assoc :last-backup last-backup))))
-                                   (.catch (fn [e]
-                                             (prn e)
-                                             (reset! error true)))))) }
+                             (let [last-backup (format-date (new js/Date))
+                                   backup-name (str "ambulante-stunden-backup-" last-backup ".csv")]
+                               (-> (:data @state)
+                                   backup-csv
+                                   (download-csv backup-name))
+                               (save-data (swap! state assoc :last-backup last-backup)))) }
          [:span.text-white.text-lg "Backup erstellen"]]]
-       [:span.text-lg.pb-12 "Letztes Backup: " (if @error "Fehlgeschlagen"
-                                                   (if (:last-backup @state) (:last-backup @state) "-"))]
-       [:div.mb-3
+       [:span.text-lg.pb-12 "Letztes Backup: " (if (:last-backup @state) (:last-backup @state) "-")]
+       #_[:div.mb-3
         [button {:on-click (fn []
                              (reset! backup-loading "LOADING")
                              (->(js/fetch
@@ -345,11 +364,11 @@
     {:href href :on-click on-click} children]])
 
 (def routes
-  (r/atom
-   [["/" {:name ::main :view home :title "Home" :nav true}]
-    ["/details/:chiffre"
-     {:name ::details :view details :parameters {:path {:chiffre string?}}}]
-    ["/stats" {:name ::stats :view stats :title "Statistiken" :nav true}]]))
+  [["/" {:name ::main :view home :title "Home" :nav true}]
+   ["/details/:chiffre"
+    {:name ::details :view details :parameters {:path {:chiffre string?}}}]
+   ["/stats" {:name ::stats :view stats :title "Statistiken" :nav true}]
+   ["/backup" {:name ::backup :view backup :nav true :title "Backup"}]])
 
 (defn menu [{:keys [visible? toggle-menu]}]
   [:div.absolute.left-0.top-0.h-full.z-10.w-full.flex
@@ -362,7 +381,7 @@
     [:nav.px-6.py-4.text-gray-700
      (let [active-page (:name (:data @match))]
        [:ul
-        (->> @routes
+        (->> routes
              (filter (fn [[_ {:keys [nav]}]] nav))
              (map
               (fn [[_ {:keys [name title]}]]
@@ -393,17 +412,12 @@
         (js/console.error "Registration failed with" e)))))
 
 (defn init []
-  (-> (js/fetch "/backup"  (clj->js {:headers {"content-type" "application/edn"}}))
-      (.then (fn [r]
-               (rfe/start!
-                (rf/router (if (not= (.-status r) 404)
-                             (swap! routes conj ["/backup" {:name ::backup :view backup :nav true :title "Backup"}])
-                             @routes)
-                           {:data {:coercion rss/coercion}})
-                (fn [m] (reset! match m))
-                {:use-framgent true})
-               (dom/render [root] (.getElementById js/document "app"))
-               #_(register-service-worker)))))
+  (rfe/start!
+   (rf/router routes {:data {:coercion rss/coercion}})
+   (fn [m] (reset! match m))
+   {:use-framgent true})
+  (dom/render [root] (.getElementById js/document "app"))
+  #_(register-service-worker))
 
 (defn ^:dev/after-load clear-cache-and-render!
   []
