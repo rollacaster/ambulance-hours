@@ -339,9 +339,10 @@
 (defonce match (r/atom nil))
 
 (defn nav-link [{:keys [active? href on-click]} children]
-  [:li.py-2 {:class [(when active?
-                       "bg-orange-100 text-orange-900 rounded-lg")]}
-   [:a.px-3 {:href href :on-click on-click} children]])
+  [:li {:class [(when active?
+                  "bg-orange-100 text-orange-900 rounded-lg")]}
+   [:a.inline-block.px-3.py-2.w-full
+    {:href href :on-click on-click} children]])
 
 (def routes
   (r/atom
