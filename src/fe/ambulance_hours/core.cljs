@@ -76,9 +76,7 @@
      "Hinzufügen"]]])
 
 (defn add-patient-button [{:keys [add]}]
-  [:button.absolute.p-6
-   {:on-click add
-    :style {:bottom 0 :right 0}}
+  [:button {:on-click add}
    [:div.bg-orange-400.rounded-full.w-16.h-16.items-center.justify-center.relative
     [:span.text-white.text-5xl.font-bold.absolute
      {:style {:top "45%" :left "50%" :transform "translate(-50%,-50%)"}}
@@ -150,11 +148,6 @@
                               :else 1)))
        reverse
         (map (fn [[[year week] hours]] {:year year :week week :hours-count (count hours)}))))
-
-(defn prepare-last-backup [last-backup]
-  (-> last-backup
-      (str/replace #" " "-")
-      (str/replace #":" "-")))
 
 (defn backup-csv [data]
   (str/join "\n"
@@ -270,11 +263,19 @@
                                                                                       (reverse
                                                                                        (conj data {:chiffre chiffre :hours []}))))))
                                               (reset! new-chiffre nil))}])
-        (map-indexed
-         (fn [idx {:keys [chiffre hours]}]
-           [patient {:key idx :idx idx :chiffre chiffre :hours hours}])
-         (:data @state))]
-       [add-patient-button {:add #(reset! new-chiffre "")}]])))
+        (if (seq (:data @state))
+          [:<>
+           (map-indexed
+            (fn [idx {:keys [chiffre hours]}]
+              [patient {:key idx :idx idx :chiffre chiffre :hours hours}])
+            (:data @state))
+           [:div.absolute.p-6
+            {:style {:bottom 0 :right 0}}
+            [add-patient-button {:add #(reset! new-chiffre "")}]]]
+          [:div.flex.flex-col.justify-center.items-center.text-center.w-full.h-full.px-4
+           [:h2.text-2xl.mb-6.font-bold "Keine Stunden gespeichert"]
+           [:p.text-xl.text-gray-500.mb-4 "Leig ein neues Chiffre an um deine Stunden zu speichern"]
+           [add-patient-button {:add #(reset! new-chiffre "")}]])]])))
 
 (defn details-date [{:keys [date]}]
   (let [updated-date (r/atom date)]
