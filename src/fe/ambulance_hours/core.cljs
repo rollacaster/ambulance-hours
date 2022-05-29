@@ -219,7 +219,9 @@
                                             }"}}]
         [:form {:on-submit (fn [^js e]
                              (.preventDefault e)
-                             (swap! state assoc :data @new-state!)
+                             (-> state
+                                 (swap! assoc :data @new-state!)
+                                 save-data)
                              (reset! new-state! nil))}
          [:div.mb-3
           [:input {:type "file" :name "backup-file" :class "custom-file-input"
@@ -235,12 +237,14 @@
                                                            str/split-lines
                                                            (map (fn [line]
                                                                   (cond
-                                                                    (str/includes? line ",") (str/split line #",")
-                                                                    (str/includes? line ";") (str/split line #";")
+                                                                    (str/includes? line ",") (str/split line #"," {:limit -1})
+                                                                    (str/includes? line ";") (str/split line #";" {:limit -1})
                                                                     :else (throw (ex-message "Invalid data format.")))))
                                                            (apply map vector)
                                                            rest
                                                            (map (fn [[chiffre & dates]]
+                                                                  [chiffre (remove (fn [date] (empty? date)) dates)]))
+                                                           (map (fn [[chiffre dates]]
                                                                   {:chiffre chiffre
                                                                    :hours (mapv #(hash-map
                                                                                   :id (random-uuid)
@@ -310,7 +314,7 @@
             [add-patient-button {:add #(reset! new-chiffre "")}]]]
           [:div.flex.flex-col.justify-center.items-center.text-center.w-full.h-full.px-4
            [:h2.text-2xl.mb-6.font-bold "Keine Stunden gespeichert"]
-           [:p.text-xl.text-gray-500.mb-4 "Leig ein neues Chiffre an um deine Stunden zu speichern"]
+           "Leg ein neues Chiffre an um deine Stunden zu speichern"
            [add-patient-button {:add #(reset! new-chiffre "")}]])]])))
 
 (defn details-date [{:keys [date]}]
