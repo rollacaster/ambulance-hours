@@ -109,10 +109,11 @@
      (total-hours data)]]])
 
 (defn header [{:keys [toggle-menu]}]
-  [:div.flex.bg-orange-400.w-full.py-3.px-6.items-baseline
-   [:button.text-white.text-3xl.mr-1 {:on-click toggle-menu}
+  [:div.flex.bg-orange-400.w-full.items-baseline
+   [:button.text-white.text-3xl.pr-2.pl-6.py-3 {:on-click toggle-menu}
     "☰"]
-   [:span.text-2xl.text-white "Ambulante Stunden"]])
+   [:span.text-2xl.text-white.py-3
+    "Ambulante Stunden"]])
 
 (defn footer []
   [:div.flex.bg-orange-400.w-full.justify-center.py-2
