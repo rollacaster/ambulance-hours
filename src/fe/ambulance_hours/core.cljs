@@ -1,7 +1,8 @@
 (ns ambulance-hours.core
-  (:require ["date-fns" :as date-fns]
-            ["d3" :as d3]
+  (:require ["d3" :as d3]
+            ["date-fns" :as date-fns]
             [cljs.reader :refer [read-string]]
+            [cljs.spec.alpha :as s]
             [clojure.string :as str]
             [reagent.core :as r]
             [reagent.dom :as dom]
@@ -182,8 +183,37 @@
     (.click link)
     (.remove link)))
 
+(s/def ::date (s/and inst? date-fns/isValid))
+(s/def ::id uuid?)
+(s/def ::hour (s/keys :req-un [::date ::id]))
+(s/def ::hours (s/coll-of ::hour))
+(s/def ::chiffre string?)
+(s/def ::patient (s/keys :req-un [::chiffre ::hours]))
+(s/def ::data (s/coll-of ::patient))
+
+(defn parse-csv [csv-string]
+  (->> csv-string
+       str/split-lines
+       (map (fn [line]
+              (cond
+                (str/includes? line ",") (str/split line #"," {:limit -1})
+                (str/includes? line ";") (str/split line #";" {:limit -1})
+                :else (throw (ex-message "Invalid data format.")))))
+       (apply map vector)
+       rest
+       (map (fn [[chiffre & dates]]
+              [chiffre (remove (fn [date] (empty? date)) dates)]))
+       (map (fn [[chiffre dates]]
+              {:chiffre chiffre
+               :hours (mapv #(hash-map
+                              :id (random-uuid)
+                              :date (date-fns/parse % "yyyy-MM-dd HH:mm" (new js/Date)))
+                            dates)}))))
+
+
 (defn backup []
-  (let [new-state! (r/atom nil)]
+  (let [new-state! (r/atom nil)
+        error! (r/atom nil)]
     (fn []
       [:div.bg-white.flex-1.w-full.pt-6.px-6
        [:div.mb-6
@@ -231,27 +261,36 @@
                                     (.readAsText reader file "UTF-8")
                                     (set! (.-onload reader)
                                           (fn [^js e]
-                                            (let [csv-string (.-target.result e)]
-                                              (reset! new-state!
-                                                      (->> csv-string
-                                                           str/split-lines
-                                                           (map (fn [line]
-                                                                  (cond
-                                                                    (str/includes? line ",") (str/split line #"," {:limit -1})
-                                                                    (str/includes? line ";") (str/split line #";" {:limit -1})
-                                                                    :else (throw (ex-message "Invalid data format.")))))
-                                                           (apply map vector)
-                                                           rest
-                                                           (map (fn [[chiffre & dates]]
-                                                                  [chiffre (remove (fn [date] (empty? date)) dates)]))
-                                                           (map (fn [[chiffre dates]]
-                                                                  {:chiffre chiffre
-                                                                   :hours (mapv #(hash-map
-                                                                                  :id (random-uuid)
-                                                                                  :date (date-fns/parse % "yyyy-MM-dd HH:mm" (new js/Date)))
-                                                                                dates)}))))))))))}]]
+                                            (let [csv-string (.-target.result e)
+                                                  new-data (parse-csv csv-string)]
+                                              (if (s/valid? ::data new-data)
+                                                (do
+                                                  (reset! error! nil)
+                                                  (reset! new-state!
+                                                          (->> csv-string
+                                                               str/split-lines
+                                                               (map (fn [line]
+                                                                      (cond
+                                                                        (str/includes? line ",") (str/split line #"," {:limit -1})
+                                                                        (str/includes? line ";") (str/split line #";" {:limit -1})
+                                                                        :else (throw (ex-message "Invalid data format.")))))
+                                                               (apply map vector)
+                                                               rest
+                                                               (map (fn [[chiffre & dates]]
+                                                                      [chiffre (remove (fn [date] (empty? date)) dates)]))
+                                                               (map (fn [[chiffre dates]]
+                                                                      {:chiffre chiffre
+                                                                       :hours (mapv #(hash-map
+                                                                                      :id (random-uuid)
+                                                                                      :date (date-fns/parse % "yyyy-MM-dd HH:mm" (new js/Date)))
+                                                                                    dates)})))))
+                                                (do
+                                                  (js/console.error (s/explain-str ::data new-data))
+                                                  (reset! error! "Datei konnte nicht gelesen werden")))))))))}]]
          [button {:type "submit" :disabled (nil? @new-state!)}
-          [:span.text-white.text-lg "Backup laden"]]]]])))
+          [:span.text-white.text-lg "Backup laden"]]
+         (when @error!
+           [:div.text-red-700.mt-4 @error!])]]])))
 
 (defn stats []
   (let [active (r/atom :quarterly)]
