@@ -361,7 +361,7 @@
             (filter (fn [[_ {:keys [nav]}]] nav))
             (map
              (fn [[_ {:keys [name title]}]]
-               {:key name}
+               ^{:key name}
                [nav-link {:active? (= active-page name) :href (rfe/href name) :on-click toggle-menu}
                 title])))])]])
 
