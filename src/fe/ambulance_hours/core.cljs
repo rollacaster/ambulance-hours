@@ -147,7 +147,8 @@
                               (> y1 y2) 1
                               (< w1 w2) -1
                               :else 1)))
-       (map (fn [[[year week] hours]] {:year year :week week :hours-count (count hours)}))))
+       reverse
+        (map (fn [[[year week] hours]] {:year year :week week :hours-count (count hours)}))))
 
 (defn prepare-last-backup [last-backup]
   (-> last-backup
@@ -317,6 +318,7 @@
          [:div.overflow-scroll
           {:style {:height "calc(100% - 76px)"}}
           (->> hours
+               (sort-by :date >)
                (map-indexed
                 (fn [idx {:keys [date id]}]
                   ^{:key id}
