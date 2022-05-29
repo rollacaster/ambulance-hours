@@ -14,10 +14,13 @@
 (defn format-date [date]
   ((.-format date-fns) date "yyyy-MM-dd HH:mm"))
 
+(defn parse-date [date-str]
+  (date-fns/parse date-str "yyyy-MM-dd'T'HH:mm" (new js/Date)))
+
 (defn save-data [data]
   (.setItem js/localStorage "data" (prn-str data)))
 
-(defn button [{:keys [class on-click secondary disabled active]} children]
+(defn button [{:keys [class on-click secondary disabled active type]} children]
   [:button.justify-center.items-center.rounded.px-3.py-2
    {:class [(cond
               active "bg-gray-700 text-white"
@@ -26,7 +29,8 @@
               :else "bg-orange-400 text-white")
             class]
     :disabled disabled
-    :on-click on-click}
+    :on-click on-click
+    :type (or type "button")}
    children])
 
 (defn total-hours [data]
@@ -179,39 +183,71 @@
     (.remove link)))
 
 (defn backup []
-  (let [backup-loading (r/atom nil)]
+  (let [new-state! (r/atom nil)]
     (fn []
       [:div.bg-white.flex-1.w-full.pt-6.px-6
-       [:div.mb-3
-        [button {:on-click (fn []
-                             (let [last-backup (format-date (new js/Date))
-                                   backup-name (str "ambulante-stunden-backup-" last-backup ".csv")]
-                               (-> (:data @state)
-                                   backup-csv
-                                   (download-csv backup-name))
-                               (save-data (swap! state assoc :last-backup last-backup)))) }
-         [:span.text-white.text-lg "Backup erstellen"]]]
-       [:span.text-lg.pb-12 "Letztes Backup: " (if (:last-backup @state) (:last-backup @state) "-")]
-       #_[:div.mb-3
-        [button {:on-click (fn []
-                             (reset! backup-loading "LOADING")
-                             (->(js/fetch
-                                 (str "/backup?device-name=web&last-backup="
-                                      (prepare-last-backup (:last-backup @state)))
-                                 (clj->js {:headers {"content-type" "application/edn"}}))
-                                (.then #(.text %))
-                                (.then (fn [res]
-                                         (->> res
-                                              read-string
-                                              (reset! state)
-                                              save-data)
-                                         (reset! backup-loading "Erfolgreich")))
-                                (.catch (fn [e]
-                                          (prn e)
-                                          (reset! backup-loading "Fehlgeschlagen")))))}
-         [:span.text-white.text-lg "Backup laden"]]]
-       (when @backup-loading
-         [:span.text-lg.pb-12 "Letztes Backup: " @backup-loading])])))
+       [:div.mb-6
+        [:h2.text-md.font-bold.mb-3 "Export"]
+        [:div.mb-3
+         [button {:on-click (fn []
+                              (let [last-backup (format-date (new js/Date))
+                                    backup-name (str "ambulante-stunden-backup-" last-backup ".csv")]
+                                (-> (:data @state)
+                                    backup-csv
+                                    (download-csv backup-name))
+                                (save-data (swap! state assoc :last-backup last-backup)))) }
+          [:span.text-white.text-lg "Backup erstellen"]]]
+        [:span.text-lg.pb-12 "Letztes Backup: " (if (:last-backup @state) (:last-backup @state) "-")]]
+       [:div.mb-6
+        [:h2.text-md.font-bold.mb-3 "Import"]
+        [:style {:dangerouslySetInnerHTML {:__html
+                                           ".custom-file-input::-webkit-file-upload-button {
+                                              display: none;
+                                            }
+                                            .custom-file-input::before {
+                                              content: 'Datei auswählen';
+                                              display: inline-block;
+                                              background: rgb(156 163 175/var(--tw-bg-opacity));;
+                                              border-radius: 4px;
+                                              padding: 8px 12px;
+                                              outline: none;
+                                              white-space: nowrap;
+                                              margin-right: 6px;
+                                              -webkit-user-select: none;
+                                              cursor: pointer;
+                                              font-size: 16px;
+                                            }"}}]
+        [:form {:on-submit (fn [^js e]
+                             (.preventDefault e)
+                             (swap! state assoc :data @new-state!)
+                             (reset! new-state! nil))}
+         [:div.mb-3
+          [:input {:type "file" :name "backup-file" :class "custom-file-input"
+                   :on-change (fn [^js e]
+                                (when-let [file (first (.-target.files e))]
+                                  (let [reader (new js/FileReader)]
+                                    (.readAsText reader file "UTF-8")
+                                    (set! (.-onload reader)
+                                          (fn [^js e]
+                                            (let [csv-string (.-target.result e)]
+                                              (reset! new-state!
+                                                      (->> csv-string
+                                                           str/split-lines
+                                                           (map (fn [line]
+                                                                  (cond
+                                                                    (str/includes? line ",") (str/split line #",")
+                                                                    (str/includes? line ";") (str/split line #";")
+                                                                    :else (throw (ex-message "Invalid data format.")))))
+                                                           (apply map vector)
+                                                           rest
+                                                           (map (fn [[chiffre & dates]]
+                                                                  {:chiffre chiffre
+                                                                   :hours (mapv #(hash-map
+                                                                                  :id (random-uuid)
+                                                                                  :date (date-fns/parse % "yyyy-MM-dd HH:mm" (new js/Date)))
+                                                                                dates)}))))))))))}]]
+         [button {:type "submit" :disabled (nil? @new-state!)}
+          [:span.text-white.text-lg "Backup laden"]]]]])))
 
 (defn stats []
   (let [active (r/atom :quarterly)]
@@ -288,7 +324,7 @@
           :type "datetime-local"
           :value (date-fns/format @updated-date "yyyy-MM-dd'T'HH:mm")
           :on-change (fn [^js e]
-                       (let [new-date (date-fns/parse (.-target.value e) "yyyy-MM-dd'T'HH:mm" (new js/Date))]
+                       (let [new-date (parse-date (.-target.value e))]
                          (when (date-fns/isValid new-date)
                            (reset! updated-date new-date))))}]]
        [:div.flex.flex-col.text-white {:class "w-1/3"}
