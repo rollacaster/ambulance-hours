@@ -265,17 +265,15 @@
          {:style {:width "90%"}
           :type "datetime-local"
           :value (date-fns/format @updated-date "yyyy-MM-dd'T'HH:mm")
-          :on-change (fn [^js e] (reset! updated-date (date-fns/parse (.-target.value e) "yyyy-MM-dd'T'HH:mm" (new js/Date))))}]]
+          :on-change (fn [^js e]
+                       (let [new-date (date-fns/parse (.-target.value e) "yyyy-MM-dd'T'HH:mm" (new js/Date))]
+                         (when (date-fns/isValid new-date)
+                           (reset! updated-date new-date))))}]]
        [:div.flex.flex-col.text-white {:class "w-1/3"}
         [button {:on-click #(on-save @updated-date) :class "mb-2" :disabled (= date @updated-date)}
          "Speichern"]
         [button {:on-click on-remove :secondary true}
          "Löschen"]]])))
-
-(defn vec-remove
-  "remove elem in coll"
-  [coll pos]
-  (vec (concat (subvec coll 0 pos) (subvec coll (inc pos)))))
 
 (defn get-details-data [chiffre]
   (some #(when (= (:chiffre %) chiffre) %) (:data @state)))
@@ -324,9 +322,17 @@
                   ^{:key id}
                   [:<>
                    [details-date {:hour (- (count hours) idx) :date date
-                                  :on-remove #(update-details-data (update details-data :hours vec-remove idx) chiffre)
+                                  :on-remove #(update-details-data (update details-data :hours (fn [hours] (remove (fn [h] (= id (:id h))) hours)))
+                                                                   chiffre)
                                   :on-save (fn [new-date]
-                                             (update-details-data (assoc-in details-data [:hours idx :date] new-date) chiffre))}]])))]]))))
+                                             (update-details-data
+                                              (update details-data :hours
+                                                      (fn [hours]
+                                                        (map (fn [h] (if (= id (:id h))
+                                                                      (assoc h :date new-date)
+                                                                      h))
+                                                             hours)))
+                                              chiffre))}]])))]]))))
 
 (defonce match (r/atom nil))
 
