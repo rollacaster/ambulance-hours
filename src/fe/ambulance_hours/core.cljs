@@ -145,7 +145,10 @@
   (->> data
        (mapcat :hours)
        (map :date)
-       (group-by (fn [date] [(date-fns/getYear date) (date-fns/getWeek date)]))
+       (group-by (fn [date] [(date-fns/getYear date)
+                            (date-fns/getWeek date
+                                              #js {:weekStartsOn 1
+                                                   :firstWeekContainsDate 4})]))
        (sort-by first (fn [[y1 w1] [y2 w2]]
                         (cond (< y1 y2) -1
                               (> y1 y2) 1
