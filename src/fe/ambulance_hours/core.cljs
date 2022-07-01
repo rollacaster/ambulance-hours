@@ -342,8 +342,9 @@
                         :create-new-patient (fn [chiffre]
                                               (save-data (swap! state update :data (fn [data]
                                                                                      (vec
-                                                                                      (reverse
-                                                                                       (conj data {:chiffre chiffre :hours []}))))))
+                                                                                      (concat
+                                                                                       [{:chiffre chiffre :hours []}]
+                                                                                       data)))))
                                               (reset! new-chiffre nil))}])
         (if (seq (:data @state))
           [:<>
