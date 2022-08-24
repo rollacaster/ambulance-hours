@@ -16,7 +16,7 @@
   ((.-format date-fns) date "yyyy-MM-dd HH:mm"))
 
 (defn parse-date [date-str]
-  (date-fns/parse date-str "yyyy-MM-dd'T'HH:mm" (new js/Date)))
+  (date-fns/parse date-str "yyyy-MM-dd HH:mm" (new js/Date)))
 
 (defn save-data [data]
   (.setItem js/localStorage "data" (prn-str data)))
