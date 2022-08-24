@@ -165,7 +165,9 @@
                        (apply max))]
               (->> data
                    (map (fn [{:keys [chiffre hours]}]
-                          (let [dates (map (comp format-date :date) hours)
+                          (let [dates (->> hours
+                                           (sort-by :date <)
+                                           (map (comp format-date :date)))
                                 filled-dates (map-indexed
                                               (fn [idx e]
                                                 (if (< idx (count dates)) (nth dates idx) e))
@@ -204,15 +206,15 @@
                 :else (throw (ex-message "Invalid data format.")))))
        (apply map vector)
        rest
-       (map (fn [[chiffre & dates]]
-              [chiffre (remove (fn [date] (empty? date)) dates)]))
-       (map (fn [[chiffre dates]]
-              {:chiffre chiffre
-               :hours (mapv #(hash-map
-                              :id (random-uuid)
-                              :date (date-fns/parse % "yyyy-MM-dd HH:mm" (new js/Date)))
-                            dates)}))))
-
+       (keep (fn [[chiffre & dates]]
+               (when (seq chiffre)
+                 [chiffre (remove (fn [date] (empty? date)) dates)])))
+       (mapv (fn [[chiffre dates]]
+               {:chiffre chiffre
+                :hours (mapv #(hash-map
+                               :id (random-uuid)
+                               :date (parse-date %))
+                             dates)}))))
 
 (defn backup []
   (let [new-state! (r/atom nil)
@@ -269,24 +271,7 @@
                                               (if (s/valid? ::data new-data)
                                                 (do
                                                   (reset! error! nil)
-                                                  (reset! new-state!
-                                                          (->> csv-string
-                                                               str/split-lines
-                                                               (map (fn [line]
-                                                                      (cond
-                                                                        (str/includes? line ",") (str/split line #"," {:limit -1})
-                                                                        (str/includes? line ";") (str/split line #";" {:limit -1})
-                                                                        :else (throw (ex-message "Invalid data format.")))))
-                                                               (apply map vector)
-                                                               rest
-                                                               (map (fn [[chiffre & dates]]
-                                                                      [chiffre (remove (fn [date] (empty? date)) dates)]))
-                                                               (map (fn [[chiffre dates]]
-                                                                      {:chiffre chiffre
-                                                                       :hours (mapv #(hash-map
-                                                                                      :id (random-uuid)
-                                                                                      :date (date-fns/parse % "yyyy-MM-dd HH:mm" (new js/Date)))
-                                                                                    dates)})))))
+                                                  (reset! new-state! new-data))
                                                 (do
                                                   (js/console.error (s/explain-str ::data new-data))
                                                   (reset! error! "Datei konnte nicht gelesen werden")))))))))}]]
