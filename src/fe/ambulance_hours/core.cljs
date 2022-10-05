@@ -319,7 +319,7 @@
       [:div.flex.flex-col.bg-white.w-full.relative
        {:style {:height "calc(100% - 60px - 40px)"}}
        [total {:data (:data @state)}]
-       [:div.overflow-scroll
+       [:div.overflow-scroll.pb-32
         {:style {:height "calc(100% - 212px)"}}
         (when @new-chiffre
           [new-patient {:chiffre @new-chiffre
