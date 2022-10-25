@@ -378,7 +378,7 @@
              [:img.object-cover {:src "https://media.tenor.com/oTQvU-uT97UAAAAd/i-want-to-congratulate-you-joe-biden.gif"
                                  :key :biden}]]]]
           (if (seq (:data @state))
-            [:div.relative
+            [:<>
              (map-indexed
               (fn [idx {:keys [chiffre hours]}]
                 [patient {:key idx :idx idx :chiffre chiffre :hours hours}])
