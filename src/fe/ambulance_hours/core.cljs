@@ -1,5 +1,6 @@
 (ns ambulance-hours.core
-  (:require ["d3" :as d3]
+  (:require ["canvas-confetti" :as confetti]
+            ["d3" :as d3]
             ["date-fns" :as date-fns]
             [cljs.reader :refer [read-string]]
             [cljs.spec.alpha :as s]
@@ -10,7 +11,8 @@
             [reitit.frontend :as rf]
             [reitit.frontend.easy :as rfe]))
 
-(def state (r/atom {:data []}))
+(defonce state (r/atom {:data []}))
+(defonce finish (r/atom false))
 
 (defn format-date [date]
   ((.-format date-fns) date "yyyy-MM-dd HH:mm"))
@@ -46,6 +48,11 @@
                       patient))
        data))
 
+(add-watch state :finish (fn [_ _ old new]
+                             (let [old-hour-count (count (mapcat :hours (get-in old [:data])))
+                                   new-hour-count (count (mapcat :hours (get-in new [:data])))]
+                               (when (and (= old-hour-count 599) (= new-hour-count 600))
+                                 (reset! finish true)))))
 (defn patient [{:keys [idx chiffre hours]}]
   (let [hours-count (->> hours (map :hours) count)]
     [:div.flex.px-6.py-6.justify-between
@@ -319,8 +326,31 @@
       [:div.flex.flex-col.bg-white.w-full.relative
        {:style {:height "calc(100% - 60px - 40px)"}}
        [total {:data (:data @state)}]
+       (when @finish
+         [:canvas.absolute.top-0.left-0.w-full
+          {:style {:height 212}
+           :ref (fn [el] (when el
+                          (let [end (+ (.now js/Date) (* 15 1000))]
+                            (letfn [(frame []
+                                      (confetti (clj->js
+                                                 {:particleCount 2,
+                                                  :angle 60,
+                                                  :spread 55,
+                                                  :origin { :x 0 :y 0.7 }
+                                                  :colors ["#fb923c" "#e5e7eb"]}))
+                                      (confetti (clj->js
+                                                 {:particleCount 2,
+                                                  :angle 120,
+                                                  :spread 55,
+                                                  :origin { :x 1 :y 0.7 }
+                                                  :colors ["#fb923c" "#e5e7eb"]}))
+                                      (when (< (.now js/Date) end)
+                                        (js/requestAnimationFrame frame)))]
+                              (frame)))))}])
        [:div.overflow-scroll.pb-32
-        {:style {:height "calc(100% - 212px)"}}
+        {:style {:height "calc(100% - 212px)"}
+         :class (when @finish "bg-orange-100")}
+
         (when @new-chiffre
           [new-patient {:chiffre @new-chiffre
                         :update-chiffre #(reset! new-chiffre %)
@@ -331,20 +361,31 @@
                                                                                        [{:chiffre chiffre :hours []}]
                                                                                        data)))))
                                               (reset! new-chiffre nil))}])
-        (if (seq (:data @state))
-          [:<>
-           (map-indexed
-            (fn [idx {:keys [chiffre hours]}]
-              [patient {:key idx :idx idx :chiffre chiffre :hours hours}])
-            (:data @state))
-           [:div.absolute.p-6
-            {:style {:bottom 0 :right 0}}
-            [add-patient-button {:add #(reset! new-chiffre "")}]]]
-          (when-not @new-chiffre
-            [:div.flex.flex-col.justify-center.items-center.text-center.w-full.h-full.px-4
-             [:h2.text-2xl.mb-6.font-bold "Keine Stunden gespeichert"]
-             "Leg ein neues Chiffre an um deine Stunden zu speichern"
-             [add-patient-button {:add #(reset! new-chiffre "")}]]))]])))
+        (if @finish
+          [:div.top-0.left-0.z-1.bg-orange-100.w-full.flex.justify-center.p-8.flex-col
+           [:div.grid.grid-rows-3.grid-cols-2.gap-3
+            [:img.col-span-2.object-cover.h-full {:src "https://media.tenor.com/vb6Jd-BQxwoAAAAC/nuts-xonh.gif"
+                                                  :key :minion}]
+            [:img.object-cover.h-full {:src "https://media.tenor.com/cZxq-tBfvjAAAAAd/good-luck-congratulations.gif"
+                                       :key :ape}]
+            [:img.col-span-1.row-span-2.object-cover.h-full {:src "https://media.tenor.com/cVHtxeoQreQAAAAC/happy-food.gif"
+                                                             :key :girl}]
+            [:img..object-cover.h-full {:src "https://media.tenor.com/oTQvU-uT97UAAAAd/i-want-to-congratulate-you-joe-biden.gif"
+                                        :key :biden}]]]
+          (if (seq (:data @state))
+            [:div.relative
+             (map-indexed
+              (fn [idx {:keys [chiffre hours]}]
+                [patient {:key idx :idx idx :chiffre chiffre :hours hours}])
+              (:data @state))
+             [:div.absolute.p-6
+              {:style {:bottom 0 :right 0}}
+              [add-patient-button {:add #(reset! new-chiffre "")}]]]
+            (when-not @new-chiffre
+              [:div.flex.flex-col.justify-center.items-center.text-center.w-full.h-full.px-4
+               [:h2.text-2xl.mb-6.font-bold "Keine Stunden gespeichert"]
+               "Leg ein neues Chiffre an um deine Stunden zu speichern"
+               [add-patient-button {:add #(reset! new-chiffre "")}]])))]])))
 
 (defn details-date [{:keys [date]}]
   (let [updated-date (r/atom date)]
