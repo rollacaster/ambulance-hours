@@ -347,9 +347,9 @@
                                       (when (< (.now js/Date) end)
                                         (js/requestAnimationFrame frame)))]
                               (frame)))))}])
-       [:div.overflow-auto.pb-32
+       [:div.overflow-auto
         {:style {:height "calc(100% - 212px)"}
-         :class (when @finish "bg-orange-100")}
+         :class (if @finish "bg-orange-100" "pb-32")}
 
         (when @new-chiffre
           [new-patient {:chiffre @new-chiffre
@@ -383,9 +383,10 @@
               (fn [idx {:keys [chiffre hours]}]
                 [patient {:key idx :idx idx :chiffre chiffre :hours hours}])
               (:data @state))
-             [:div.absolute.p-6
-              {:style {:bottom 0 :right 0}}
-              [add-patient-button {:add #(reset! new-chiffre "")}]]]
+             (when-not @new-chiffre
+               [:div.absolute.p-6
+                {:style {:bottom 0 :right 0}}
+                [add-patient-button {:add #(reset! new-chiffre "")}]])]
             (when-not @new-chiffre
               [:div.flex.flex-col.justify-center.items-center.text-center.w-full.h-full.px-4
                [:h2.text-2xl.mb-6.font-bold "Keine Stunden gespeichert"]
