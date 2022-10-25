@@ -347,7 +347,7 @@
                                       (when (< (.now js/Date) end)
                                         (js/requestAnimationFrame frame)))]
                               (frame)))))}])
-       [:div.overflow-scroll.pb-32
+       [:div.overflow-auto.pb-32
         {:style {:height "calc(100% - 212px)"}
          :class (when @finish "bg-orange-100")}
 
@@ -364,14 +364,19 @@
         (if @finish
           [:div.top-0.left-0.z-1.bg-orange-100.w-full.flex.justify-center.p-8.flex-col
            [:div.grid.grid-rows-3.grid-cols-2.gap-3
-            [:img.col-span-2.object-cover.h-full {:src "https://media.tenor.com/vb6Jd-BQxwoAAAAC/nuts-xonh.gif"
-                                                  :key :minion}]
-            [:img.object-cover.h-full {:src "https://media.tenor.com/cZxq-tBfvjAAAAAd/good-luck-congratulations.gif"
-                                       :key :ape}]
-            [:img.col-span-1.row-span-2.object-cover.h-full {:src "https://media.tenor.com/cVHtxeoQreQAAAAC/happy-food.gif"
-                                                             :key :girl}]
-            [:img..object-cover.h-full {:src "https://media.tenor.com/oTQvU-uT97UAAAAd/i-want-to-congratulate-you-joe-biden.gif"
-                                        :key :biden}]]]
+            [:div.col-span-2.flex.items-stretch
+             [:img.object-cover.h-full
+              {:src "https://media.tenor.com/vb6Jd-BQxwoAAAAC/nuts-xonh.gif"
+               :key :minion}]]
+            [:div.flex.items-stretch
+             [:img.object-cover {:src "https://media.tenor.com/cZxq-tBfvjAAAAAd/good-luck-congratulations.gif"
+                                 :key :ape}]]
+            [:div.col-span-1.row-span-2.flex.items-stretch
+             [:img.object-cover {:src "https://media.tenor.com/cVHtxeoQreQAAAAC/happy-food.gif"
+                                 :key :girl}]]
+            [:div.flex.items-stretch
+             [:img.object-cover {:src "https://media.tenor.com/oTQvU-uT97UAAAAd/i-want-to-congratulate-you-joe-biden.gif"
+                                 :key :biden}]]]]
           (if (seq (:data @state))
             [:div.relative
              (map-indexed
