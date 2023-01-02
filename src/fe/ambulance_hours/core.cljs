@@ -404,7 +404,7 @@
           :type "datetime-local"
           :value (date-fns/format @updated-date "yyyy-MM-dd'T'HH:mm")
           :on-change (fn [^js e]
-                       (let [new-date (parse-date (.-target.value e))]
+                       (let [new-date (parse-date (str/replace (.-target.value e) "T" " "))]
                          (when (date-fns/isValid new-date)
                            (reset! updated-date new-date))))}]]
        [:div.flex.flex-col.text-white {:class "w-1/3"}
